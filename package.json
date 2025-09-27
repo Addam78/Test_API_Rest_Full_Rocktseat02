@@ -1,17 +1,24 @@
 {
   "name": "API_Rest_02",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.ts",
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "tsx watch src/server.ts"
+    "dev": "tsx watch src/server.ts",
+    "knex": "node --import tsx ./node_modules/knex/bin/cli.js"
   },
   "dependencies": {
-    "fastify": "^5.6.1"
+    "bcrypt": "^6.0.0",
+    "fastify": "^5.6.1",
+    "knex": "^3.1.0",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "@types/knex": "^0.16.1",
     "@types/node": "^24.5.2",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.2"
   }
 }
