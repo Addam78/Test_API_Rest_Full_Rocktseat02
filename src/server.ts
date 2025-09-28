@@ -7,7 +7,13 @@ import {hash} from 'bcrypt'
 import z, { email } from 'zod'
 import { _email } from "zod/v4/core"
 
+
+
 const app = fastify()
+
+//IMPORT DE COOKIES
+import cookie from '@fastify/cookie'
+app.register (cookie)
 
 //DEFINIÇÃO DOS SALTOS PARA HAS DA SENHA
 const SALT_ROUNDS =10
@@ -46,37 +52,42 @@ app.post('/register',async (req,reply) =>{
     }
 
 })
-// app.post('/check-user', async (req, reply) => {
-//     try {
-//         const checkUserSchema = z.object({
-//             email: z.string().email()
-//         });
 
-//         const { email } = checkUserSchema.parse(req.body);
-
-//         const user = await db('users').where({ email }).first();
-
-//         if (user) {
-//             return { exists: true, user };
-//         } else {
-//             return { exists: false };
-//         }
-//     } catch (error) {
-//         reply.status(400).send({ error: 'Invalid request' });
-//     }
-// });
-//ROTA DE CADASTRO DE USUARIO OU DE LOGIN
-app.post('/diet',async(req,res) =>{
-    const  {name_user,email_user,pasword_user} = req.body
+app.post('/diet',async(req,reply) =>{
+    const  {name_user,email_user} = req.body
     
 
-    const teste = await db('users').select().where({name:name_user,email:email_user}).first()
+    const teste = await db('users').select().where({name:name_user,email:email_user})
     
     if(teste){
-        return "Usario cadastrado"
+        
+        let cookieSession = req.cookies.session_cookie
+
+        if(!cookieSession){
+            cookieSession = randomUUID()
+
+             reply.cookie('cookieSession',cookieSession,{
+            path:'/',
+            maxAge: 60 * 60 * 24 * 7
+        })
+
+        await db('users').where({email:email_user,name:name_user}).update({
+            'session_cookie':cookieSession
+        })
+
+        }else{
+            
+        }
+
+       
+        return "Login com sucesso"
+
     }else{
         return 'Usario não cadastrado'
     }
+
+
+//REGSITRAR REFEIÇÃO
 
 
 
