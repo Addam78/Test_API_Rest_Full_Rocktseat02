@@ -61,7 +61,7 @@ app.post('/diet',async(req,reply) =>{
     
     if(teste){
         
-        let cookieSession = req.cookies.session_cookie
+        let cookieSession = req.cookies.cookieSession
 
         if(!cookieSession){
             cookieSession = randomUUID()
@@ -100,6 +100,8 @@ app.get('/register_launch',async(req,reply)=>{
         return 'Usuario validado'
         
     }
+
+
 })
 
 
