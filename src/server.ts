@@ -6,14 +6,14 @@ import {hash} from 'bcrypt'
 //import { hash } from "crypto"
 import z, { email } from 'zod'
 import { _email } from "zod/v4/core"
-
+import cookie from '@fastify/cookie'
 
 
 const app = fastify()
 
 //IMPORT DE COOKIES
-import cookie from '@fastify/cookie'
 app.register (cookie)
+
 
 //DEFINIÇÃO DOS SALTOS PARA HAS DA SENHA
 const SALT_ROUNDS =10
@@ -75,26 +75,33 @@ app.post('/diet',async(req,reply) =>{
             'session_cookie':cookieSession
         })
 
-        }else{
-            
         }
 
-       
         return "Login com sucesso"
 
     }else{
         return 'Usario não cadastrado'
     }
 
-
-//REGSITRAR REFEIÇÃO
-
-
-
-
-
       
 })
+//REGISTRAR REFEIÇÃO
+app.get('/register_launch',async(req,reply)=>{
+    //BUSCA DE SESSION COOKIE
+    const cookie_session = req.cookies.cookieSession
+    if (!cookie_session){
+        return 'usuario não autenticado'
+    }else{
+        const user = await db('users').where('session_cookie',cookie_session).first().select('id', 'name')
+        
+        if(!user){
+            return 'Sessão expirada'
+        }
+        return 'Usuario validado'
+        
+    }
+})
+
 
 
 app.listen({port:3333})
