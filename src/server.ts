@@ -53,6 +53,7 @@ app.post('/register',async (req,reply) =>{
 
 })
 
+//LOGIN 
 app.post('/diet',async(req,reply) =>{
     const  {name_user,email_user} = req.body
     
@@ -85,7 +86,7 @@ app.post('/diet',async(req,reply) =>{
 
       
 })
-//REGISTRAR REFEIÇÃO
+//VERIFICAÇÃO DE COOKIES
 app.get('/register_launch',async(req,reply)=>{
     //BUSCA DE SESSION COOKIE
     const cookie_session = req.cookies.cookieSession
@@ -102,6 +103,27 @@ app.get('/register_launch',async(req,reply)=>{
     }
 
 
+})
+
+app.post('/meal',async (req,reply)=>{
+    //ADIICONAR VERIFICAÇÃO DE COOKIE
+
+    //TRATIVA DOS DADOS 
+    const RegisterMealBodySchema= z.object({
+        name_meal:z.string().min(2),
+        description_meal:z.string().min(2),
+        time_meal:z.date()
+        
+     })
+    //PASSANDO O METODO REQ.BODY PARA PUXAR OS ITENS
+    const{name_meal,description_meal,time_meal} = RegisterMealBodySchema.parse(req.body)
+    
+    await db.insert({
+        id:randomUUID(),
+        name_meal,
+        description_meal,
+        time_meal
+    })
 })
 
 
