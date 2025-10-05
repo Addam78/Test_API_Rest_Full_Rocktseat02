@@ -257,6 +257,7 @@ app.post('/visualizacaounica',async(req,reply) =>{
     const viewunica = await db('meal').select('name_meal','description_meal')
     .where({'name_meal':name_search})
     
+    console.log(viewunica)
     return viewunica
     
 
