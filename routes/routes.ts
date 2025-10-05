@@ -21,7 +21,6 @@ app.get('/',(req,reply) =>{
 app.post('/register',async (req,reply) =>{
     try {
         
-
         //TRATIVA TIPAGEM DOS DADOS COM ZOD
         const createUserBodySchema = z.object({
             name:z.string().nonempty().min(2),
@@ -29,12 +28,25 @@ app.post('/register',async (req,reply) =>{
             password:z.string().min(4).max(20)
         })
 
+       
+
         // Extraindo os dados do corpo da requisição
         const { name, email, password } = createUserBodySchema.parse(req.body)
 
+        const existingUser = await db('users').where({ name}).first();
+        const verifica_email = await db('users').where({email}).first()
+
+        if (existingUser) {
+            return reply.status(400).send({ error: 'Nome de usuário já existe' });
+        }
+        if(verifica_email){
+            return 'email existente'
+        }
+     
+
         //PASSANDO OS ARQUIVOS PARA A VARIAVEL
         const password_hash = await hash(password, SALT_ROUNDS)
-        //const password_hash = await bcrypt(password,SALT_ROUNDS)
+        
         //INSERT NO BANCO
         const NewUser ={
             id:randomUUID(),
@@ -58,7 +70,6 @@ app.post('/diet',async(req,reply) =>{
 
     }
     
-
     const teste = await db('users').select().where({name:name_user,email:email_user})
     
     if(teste){
