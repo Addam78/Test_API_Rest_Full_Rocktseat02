@@ -1,7 +1,7 @@
 import {fastify} from "fastify"
 import {db} from './database.js'
 import knex from "knex"
-import { randomUUID } from "crypto"
+import { randomUUID, type UUID } from "crypto"
 import {hash} from 'bcrypt'
 //import { hash } from "crypto"
 import z, { email } from 'zod'
@@ -93,7 +93,7 @@ app.get('/register_launch',async(req,reply)=>{
     if (!cookie_session){
         return 'usuario não autenticado'
     }else{
-        const user = await db('users').where('session_cookie',cookie_session).first().select('id', 'name')
+        const user = await db('users').where('session_cookie',cookie_session).first().select('id', 'name','session_cookie')
         
         if(!user){
             return 'Sessão expirada'
@@ -180,12 +180,87 @@ app.get('/verifica_lanche', async (req, reply) => {
       'meal.user_id',
       'users.id',
       'users.name as user_name',
-      'users.email'
+      'users.email',
+      
     );
 
   return view;
 });
 
+app.post('/alteralanche',async (req,reply)=>{
+    //ALTERAR OS DADOS -->UPDATE , COM VERIFICAÇÃO DE COOKIE E PRIMARY KEY
+    try{
+    //PEGAR ID DO LANCHE POR MEIO DO COOKIE DO USUARIO LOGADO
+    //BUSCAR NO BANCO O ID DO LANCHE POR MEIO DO COOKIE DO USUARIO
+    //VERIFICAR O COOKIE ANTES
+    //SELECIOEN O LANCHE ONDE TEM COOKIE INNER JOIN ID.USER , INNER JOIN MEAL 
+    
+    const verifica_cookie = req.cookies.cookieSession 
+    console.log(verifica_cookie)
+    
+    //ID DO USARIO
+    const id_usuario = await db('users').select('id').where({'session_cookie':verifica_cookie}).first()
+    console.log('id do usuario')
+    console.log(id_usuario)
+    
+    //ID DO LANCHE COM BASE USUARIO LOGADO 
+    const meal_id = await db('meal')
+    .join('users', 'meal.user_id', '=', 'users.id')
+    .select('meal.id')
+    .where('users.session_cookie', verifica_cookie)
+    .first()
+    
+    console.log('id  do lanche')
+    console.log(meal_id)
+
+    if(!verifica_cookie){
+        return 'error'
+        
+    }else{        
+        //PASSAR OS REQ.BODY DO USUARIOS
+        const {id_meal_update ,name_meal_update, description_meal_update } = req.body as {
+            name_meal_update: string
+            description_meal_update: string
+            id_meal_update:UUID
+        }
+      
+    
+   await db('meal').update({
+    id: id_meal_update,
+    name_meal: name_meal_update,
+    description_meal: description_meal_update
+  }).where({ 'id':id_meal_update})
+  
+ 
+    }
+    
+}
+    catch(error){
+        console.error(error)
+    }
+
+ 
+
+})
+
+
+app.post('/visualizacaounica',async(req,reply) =>{
+    //PARA VISUALZIAR UMA UNICA REFEIÇÃO, NECESSARIO ID
+    //CRIAR POR TIPO DE NOME
+    const {name_search} = req.body as {
+        name_search:string
+    }
+       
+    
+    console.log(name_search)
+
+    const viewunica = await db('meal').select('name_meal','description_meal')
+    .where({'name_meal':name_search})
+    
+    return viewunica
+    
+
+}) 
 
 
 
