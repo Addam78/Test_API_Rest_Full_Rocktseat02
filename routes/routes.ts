@@ -80,39 +80,47 @@ app.post('/registrar',async (req,reply) =>{
 
 })
 
-//LOGIN 
-app.post('/diet',async(req,reply) =>{
-    const  {name_user,email_user} = req.body as {
-        name_user:string,
-        email_user:string
+//ROTAR PARA FAZER LOGIN
+    app.post('/diet', async (req, reply) => {
 
-    }
-    
-    const teste = await db('users').select().where({name:name_user,email:email_user})
-    
-    if(teste){
-        
-        let cookieSession = req.cookies.cookieSession
-
-        if(!cookieSession){
-            cookieSession = randomUUID()
-
-             reply.cookie('cookieSession',cookieSession,{
-            path:'/',
-            maxAge: 60 * 60 * 24 * 7
+        const createUserBodySchema = z.object({
+            name_user: z.string().min(2).max(10),
+            email_user: z.string()
         })
 
-        await db('users').where({email:email_user,name:name_user}).update({
-            'session_cookie':cookieSession
-        })
+        const { name_user, email_user } = createUserBodySchema.parse(req.body)
+
+
+        const existingUser = await db('users').select().where({ name: name_user })
+        console.log(existingUser)
+        if (!existingUser) {
+            return 'Usario não cadastrado'
+        }
+
+        else {
+            let cookieSession = req.cookies.cookieSession
+
+            if (!cookieSession) {
+                cookieSession = randomUUID()
+
+                reply.cookie('cookieSession', cookieSession, {
+                    path: '/',
+                    maxAge: 60 * 60 * 24 * 7
+                })
+
+
+                await db('users').where({ email: email_user, name: name_user }).update({
+                    'session_cookie': cookieSession
+                })
+
+            }
+
+            return "Login com sucesso"
 
         }
 
-        return "Login com sucesso"
-
-    }else{
-        return 'Usario não cadastrado'
-    }
+        
+   
 
       
 })
