@@ -11,7 +11,8 @@ import {hash} from 'bcrypt'
 const SALT_ROUNDS =10
 
 export  async function routes(app:FastifyInstance) {
-//ROTA PARA RETORNO DOS USUARIOS CADASTRADOS
+
+    //ROTA PARA RETORNO DOS USUARIOS CADASTRADOS
 app.get('/',(req,reply) =>{
     const filter = db.select().table('users')
     return filter
@@ -282,26 +283,12 @@ app.post('/visualizacaounica',async(req,reply) =>{
     console.log(name_search)
 
     try{
-
-    //      const viewunica = await db('meal')
-    // .join('users','meal.user_id', '=', 'users.id')
-    // .select('meal.name_meal','meal.description_meal')
-    // .where({'meal.name_meal':name_search})
-    // .andWhere('meal.user_id', '=', db.ref('users.id'))
-    // .andWhere( {'user.session_cookie':cookie_session})
-    // .first()
-    // return viewunica
       const viewunica = await db('meal')
     .join('users', 'meal.user_id', '=', 'users.id')
     .select('meal.name_meal', 'meal.description_meal')
     .where('meal.name_meal', name_search)
     .andWhere('session_cookie',cookie_session)
-    //.andWhere('meal.user_id', id_user)   // 🔥 filtro pelo usuário logado
     .first()
-
-   
-
-
   return viewunica
     }
     
