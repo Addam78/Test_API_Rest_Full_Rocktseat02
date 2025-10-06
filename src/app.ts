@@ -15,18 +15,23 @@ export const app = fastify()
 
 //IMPORT DE COOKIES
 app.register (cookie)
-app.register(routes)
 
-app.register(fastifySwagger,{
-    openapi:{
-        info :{
-            title:'Desafio Rockteseat',
-            version:'1.0.0'
-        }
+await app.register(fastifySwagger, {
+  openapi: {
+    openapi: '3.0.0',  // ⬅️⬅️⬅️ ESTE CAMPO ESTÁ FALTANDO!
+    info: {
+      title: 'Desafio Rockteseat',
+      version: '1.0.0'
     }
+  }
 })
-app.register(fastifySwaggerUi, {
+
+await app.register(fastifySwaggerUi, {
     routePrefix :'/docs',
 })
+
+app.register(routes)
+
+
 //DEFINIÇÃO DOS SALTOS PARA HAS DA SENHA
 const SALT_ROUNDS =10

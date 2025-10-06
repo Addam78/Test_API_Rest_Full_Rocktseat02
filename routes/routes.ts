@@ -13,11 +13,33 @@ const SALT_ROUNDS =10
 export  async function routes(app:FastifyInstance) {
 
     //ROTA PARA RETORNO DOS USUARIOS CADASTRADOS
-app.get('/',(req,reply) =>{
-    const filter = db.select().table('users')
-    return filter
-})
-
+// app.get('/',(req,reply) =>{
+//     const filter = db.select().table('users')
+//     return filter
+// })
+  app.get('/', {
+    schema: {
+      description: 'Lista todos os usuários cadastrados',
+      tags: ['users'],
+      response: {
+        200: {
+          description: 'Lista de usuários retornada com sucesso',
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', format: 'uuid' },
+              name: { type: 'string' },
+              email: { type: 'string', format: 'email' }
+            }
+          }
+        }
+      }
+    }
+  }, async (req, reply) => {
+    const users = await db.select('id', 'name', 'email').from('users')
+    return users
+  })
 //ROTA DE CADASTRO, PEGAR NOME,SENHA E VINCULAR AO BANCO
 app.post('/register',async (req,reply) =>{
     try {
