@@ -12,11 +12,6 @@ const SALT_ROUNDS =10
 
 export  async function routes(app:FastifyInstance) {
 
-    //ROTA PARA RETORNO DOS USUARIOS CADASTRADOS
-// app.get('/',(req,reply) =>{
-//     const filter = db.select().table('users')
-//     return filter
-// })
   app.get('/', {
     schema: {
       description: 'Lista todos os usuários cadastrados',
@@ -40,8 +35,9 @@ export  async function routes(app:FastifyInstance) {
     const users = await db.select('id', 'name', 'email').from('users')
     return users
   })
+
 //ROTA DE CADASTRO, PEGAR NOME,SENHA E VINCULAR AO BANCO
-app.post('/register',async (req,reply) =>{
+app.post('/registrar',async (req,reply) =>{
     try {
         
         //TRATIVA TIPAGEM DOS DADOS COM ZOD
@@ -51,23 +47,20 @@ app.post('/register',async (req,reply) =>{
             password:z.string().min(4).max(20)
         })
 
-       
-
         // Extraindo os dados do corpo da requisição
         const { name, email, password } = createUserBodySchema.parse(req.body)
-
+        //VERIFICAR SE EXISTE NOME OU EMAIL EXISTENTE 
         const existingUser = await db('users').where({ name}).first();
         const verifica_email = await db('users').where({email}).first()
 
         if (existingUser) {
-            return reply.status(400).send({ error: 'Nome de usuário já existe' });
+           return reply.code(400).send('Nome  ja existentes')
         }
         if(verifica_email){
-            return 'email existente'
+            return reply.code(400).send('email ja existentes')
         }
      
-
-        //PASSANDO OS ARQUIVOS PARA A VARIAVEL
+        //PASSANDO OS ARQUIVOS PARA A VARIAVEL E HABILITANDO HASH
         const password_hash = await hash(password, SALT_ROUNDS)
         
         //INSERT NO BANCO
@@ -79,8 +72,10 @@ app.post('/register',async (req,reply) =>{
         }
 
         await db('users').insert(NewUser)
+        reply.code(201).send('Usuario cadastrado com sucesso')
     }catch(error){
         return error
+
     }
 
 })
