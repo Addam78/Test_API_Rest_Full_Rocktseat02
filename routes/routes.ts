@@ -91,8 +91,10 @@ app.post('/registrar',async (req,reply) =>{
         const { name_user, email_user } = createUserBodySchema.parse(req.body)
 
 
-        const existingUser = await db('users').select().where({ name: name_user })
+        const existingUser = await db('users').select('name','email').where({ name: name_user, email:email_user}).first()
+        
         console.log(existingUser)
+        
         if (!existingUser) {
             return 'Usario não cadastrado'
         }
