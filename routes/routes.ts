@@ -1,4 +1,3 @@
-
 import {app} from '../src/app.js'
 import type { FastifyInstance } from "fastify"
 import db from "../src/database.js"
@@ -15,7 +14,7 @@ export  async function routes(app:FastifyInstance) {
   app.get('/', {
     schema: {
       description: 'Lista todos os usuários cadastrados',
-      tags: ['users'],
+      tags: ['Usuarios'],
       response: {
         200: {
           description: 'Lista de usuários retornada com sucesso',
@@ -37,7 +36,63 @@ export  async function routes(app:FastifyInstance) {
   })
 
 //ROTA DE CADASTRO, PEGAR NOME,SENHA E VINCULAR AO BANCO
-app.post('/registrar',async (req,reply) =>{
+app.post('/registrar', {
+    schema: {
+        description: 'Registrar um novo usuário no sistema',
+        tags: ['Registrar Usuários'],
+        body: {
+            type: 'object',
+            required: ['name', 'email', 'password'],
+            properties: {
+                name: {
+                    type: 'string',
+                    minLength: 2,
+                    description: 'Nome do usuário',
+                    examples: ['João Silva']
+                },
+                email: {
+                    type: 'string',
+                    format: 'email',
+                    description: 'Email do usuário',
+                    examples: ['joao.silva@email.com']
+                },
+                password: {
+                    type: 'string',
+                    minLength: 4,
+                    maxLength: 20,
+                    description: 'Senha do usuário (será armazenada com hash)',
+                    examples: ['senha123']
+                }
+            }
+        },
+        response: {
+            201: {
+                description: 'Usuário cadastrado com sucesso',
+                type: 'string'
+            },
+            400: {
+                description: 'Erro de validação ou dados duplicados',
+                type: 'object',
+                properties: {
+                    error: {
+                        type: 'string'
+                    }
+                }
+            },
+            500: {
+                description: 'Erro interno do servidor',
+                type: 'object',
+                properties: {
+                    error: {
+                        type: 'string'
+                    }
+                }
+            }
+        },
+        security: []
+    }
+},
+  async (req,reply) =>{
     try {
         
         //TRATIVA TIPAGEM DOS DADOS COM ZOD
@@ -79,6 +134,8 @@ app.post('/registrar',async (req,reply) =>{
     }
 
 })
+
+
 
 //ROTAR PARA FAZER LOGIN
     app.post('/diet', async (req, reply) => {
@@ -326,6 +383,54 @@ app.post('/visualizacaounica',async(req,reply) =>{
     
 
 }) 
+
+/**
+ * @swagger
+ * /registrar:
+ *   post:
+ *     summary: Registra um novo usuário
+ *     description: Cria um novo usuário no sistema após validar os dados fornecidos e verificar duplicidade de nome e email.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Nome do usuário (mínimo 2 caracteres).
+ *                 example: João Silva
+ *               email:
+ *                 type: string
+ *                 description: Email do usuário.
+ *                 example: joao.silva@email.com
+ *               password:
+ *                 type: string
+ *                 description: Senha do usuário (mínimo 4 e máximo 20 caracteres).
+ *                 example: minhasenha123
+ *     responses:
+ *       201:
+ *         description: Usuário cadastrado com sucesso.
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: Usuario cadastrado com sucesso
+ *       400:
+ *         description: Nome ou email já existentes.
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               examples:
+ *                 NomeDuplicado:
+ *                   value: Nome já existente
+ *                 EmailDuplicado:
+ *                   value: Email já existente
+ *       500:
+ *         description: Erro interno do servidor.
+ */
 
 
   
