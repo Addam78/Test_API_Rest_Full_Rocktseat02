@@ -5,6 +5,7 @@ import {email, z} from 'zod'
 import { title } from "process"
 import { randomUUID, type UUID } from "crypto"
 import {hash} from 'bcrypt'
+import { cookie_authorization } from '../src/middlewares/authorization.js'
 
 
 const SALT_ROUNDS =10
@@ -138,7 +139,7 @@ app.post('/registrar', {
 
 
 //ROTAR PARA FAZER LOGIN
-    app.post('/diet', async (req, reply) => {
+    app.post('/acessar', async (req, reply) => {
 
         const createUserBodySchema = z.object({
             name_user: z.string().min(2).max(10),
@@ -184,46 +185,30 @@ app.post('/registrar', {
       
 })
 //VERIFICAÇÃO DE COOKIES
-app.get('/register_launch',async(req,reply)=>{
-    //BUSCA DE SESSION COOKIE
-    const cookie_session = req.cookies.cookieSession
-    if (!cookie_session){
-        return 'usuario não autenticado'
-    }else{
+app.get('/validar_cadastro',{preHandler : [cookie_authorization]} ,async(req,reply)=>{
+        //BUSCA DE SESSION COOKIE
+        const cookie_session = req.cookies.cookieSession
         const user = await db('users').where('session_cookie',cookie_session).first().select('id', 'name','session_cookie')
         
         if(!user){
             return 'Sessão expirada'
         }
-        return user
-        
-    }
-
-
+        return user   
 })
 
-app.post('/meal',async (req,reply)=>{
+//INSERIR LANCHE
+app.post('/inserir_lanche',{preHandler : [cookie_authorization]} ,async (req,reply)=>{
     //ADIICONAR VERIFICAÇÃO DE COOKIE
-
+    const cookie_session = req.cookies.cookieSession
     //TRATIVA DOS DADOS 
     const RegisterMealBodySchema= z.object({
         name_meal:z.string().min(2),
         description_meal:z.string().min(2),
         time_meal:z.string().transform((val,ctx) =>{
             const date = new Date(val)
-        })
-
-        
+        })  
      })
-    //PASSANDO O METODO REQ.BODY PARA PUXAR OS ITENS
-
-    // Supondo que o cookie de sessão se chame 'session_id'
-    const cookie_session = req.cookies.cookieSession
-    
-    
-    if (!cookie_session) {
-        return null; // Nenhuma sessão enviada
-    }
+      
 
     // 1. BUSCA NO BANCO (Exemplo: Usando o session_id para encontrar o usuário)
     // Se o seu token de sessão estiver armazenado na tabela 'users' (ou em uma tabela 'sessions')
@@ -232,7 +217,6 @@ app.post('/meal',async (req,reply)=>{
         .first();
 
    // return user ? user.id : null; 
-
     const{name_meal,description_meal,time_meal} = RegisterMealBodySchema.parse(req.body)
     
     await db('meal').insert({
@@ -240,22 +224,18 @@ app.post('/meal',async (req,reply)=>{
         name_meal,
         description_meal,
         time_meal,
-        user_id:user.id
-         
+        user_id:user.id  
     })
 
+    reply.send(`Lanche ${name_meal} cadastrado com sucesso`)
 
-   
 })
 
 
-app.get('/verifica_lanche', async (req, reply) => {
+//VERIFICAR_LANCHE
+app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, reply) => {
   // 1. Pega o cookie da requisição
   const cookie_session = req.cookies.cookieSession;
-
-  if (!cookie_session) {
-    return reply.status(401).send({ error: 'Sessão não encontrada' });
-  }
 
   // 2. Busca o usuário pelo cookie para descobrir seu ID
   const user = await db('users')
@@ -284,154 +264,82 @@ app.get('/verifica_lanche', async (req, reply) => {
   return view;
 });
 
-app.post('/alteralanche',async (req,reply)=>{
-    //ALTERAR OS DADOS -->UPDATE , COM VERIFICAÇÃO DE COOKIE E PRIMARY KEY
-    try{
-    //PEGAR ID DO LANCHE POR MEIO DO COOKIE DO USUARIO LOGADO
-    //BUSCAR NO BANCO O ID DO LANCHE POR MEIO DO COOKIE DO USUARIO
-    //VERIFICAR O COOKIE ANTES
-    //SELECIOEN O LANCHE ONDE TEM COOKIE INNER JOIN ID.USER , INNER JOIN MEAL 
+app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,reply)=>{
     
-    const verifica_cookie = req.cookies.cookieSession 
-    console.log(verifica_cookie)
-    
+  try {
+
+    const verifica_cookie = req.cookies.cookieSession
+    // console.log(verifica_cookie)
+
     //ID DO USARIO
-    const id_usuario = await db('users').select('id').where({'session_cookie':verifica_cookie}).first()
-    console.log('id do usuario')
-    console.log(id_usuario)
-    
+    const id_usuario = await db('users').select('id').where({ 'session_cookie': cookie_authorization }).first()
+
+
     //ID DO LANCHE COM BASE USUARIO LOGADO 
     const meal_id = await db('meal')
-    .join('users', 'meal.user_id', '=', 'users.id')
-    .select('meal.id')
-    .where('users.session_cookie', verifica_cookie)
-    .first()
-    
-    console.log('id  do lanche')
-    console.log(meal_id)
+      .join('users', 'meal.user_id', '=', 'users.id')
+      .select('meal.id')
+      .where('users.session_cookie', verifica_cookie)
+      .first()
 
-    if(!verifica_cookie){
-        return 'error'
-        
-    }else{        
-        //PASSAR OS REQ.BODY DO USUARIOS
-        const {id_meal_update ,name_meal_update, description_meal_update } = req.body as {
-            name_meal_update: string
-            description_meal_update: string
-            id_meal_update:UUID
-        }
-      
-    
-   await db('meal').update({
-    id: id_meal_update,
-    name_meal: name_meal_update,
-    description_meal: description_meal_update
-  }).where({ 'id':id_meal_update})
-  
- 
-    }
-    
-}
-    catch(error){
-        console.error(error)
+    if (!verifica_cookie) {
+      return 'error'
+
+    } else {
+      //PASSAR OS REQ.BODY DO USUARIOS
+      const { id_meal_update, name_meal_update, description_meal_update } = req.body as {
+        name_meal_update: string
+        description_meal_update: string
+        id_meal_update: UUID
+      }
+
+
+      await db('meal').update({
+        id: id_meal_update,
+        name_meal: name_meal_update,
+        description_meal: description_meal_update
+      }).where({ 'id': id_meal_update })
+
+
     }
 
- 
+  }
+  catch (error) {
+    console.error(error)
+  }
+
+
 
 })
 
 
-app.post('/visualizacaounica',async(req,reply) =>{
+app.post('/visualizacao_unica',{preHandler : [cookie_authorization]},async(req,reply) =>{
     //PARA VISUALZIAR UMA UNICA REFEIÇÃO, NECESSARIO ID
     //CRIAR POR TIPO DE NOME
-    const cookie_session = req.cookies.cookieSession;
+  const cookie_session = req.cookies.cookieSession;
 
-    // const user_id = await db('users').select('id').where({
-    //     'id':cookie_session
-    // })
-    // console.log(user_id)
+  const { name_search } = req.body as {
+    name_search: string
+  }
 
-    if (!cookie_session) {
-    return reply.status(401).send({ error: 'Sessão não encontrada' });
-    }
-
-    const {name_search} = req.body as {
-        name_search:string
-    }
-
-    const id_user = await db('users').select('id')
+  const id_user = await db('users').select('id')
     .where('session_cookie', cookie_session)
     .first();
-       
-    
-    console.log(name_search)
 
-    try{
-      const viewunica = await db('meal')
-    .join('users', 'meal.user_id', '=', 'users.id')
-    .select('meal.name_meal', 'meal.description_meal')
-    .where('meal.name_meal', name_search)
-    .andWhere('session_cookie',cookie_session)
-    .first()
-  return viewunica
-    }
-    
-    catch(error){
-        console.error
-    }
-   
-    
+  try {
+    const viewunica = await db('meal')
+      .join('users', 'meal.user_id', '=', 'users.id')
+      .select('meal.name_meal', 'meal.description_meal')
+      .where('meal.name_meal', name_search)
+      .andWhere('session_cookie', cookie_session)
+      .first()
+    return viewunica
+  }
 
+  catch (error) {
+    console.error
+  }
 }) 
 
-/**
- * @swagger
- * /registrar:
- *   post:
- *     summary: Registra um novo usuário
- *     description: Cria um novo usuário no sistema após validar os dados fornecidos e verificar duplicidade de nome e email.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *                 description: Nome do usuário (mínimo 2 caracteres).
- *                 example: João Silva
- *               email:
- *                 type: string
- *                 description: Email do usuário.
- *                 example: joao.silva@email.com
- *               password:
- *                 type: string
- *                 description: Senha do usuário (mínimo 4 e máximo 20 caracteres).
- *                 example: minhasenha123
- *     responses:
- *       201:
- *         description: Usuário cadastrado com sucesso.
- *         content:
- *           text/plain:
- *             schema:
- *               type: string
- *               example: Usuario cadastrado com sucesso
- *       400:
- *         description: Nome ou email já existentes.
- *         content:
- *           text/plain:
- *             schema:
- *               type: string
- *               examples:
- *                 NomeDuplicado:
- *                   value: Nome já existente
- *                 EmailDuplicado:
- *                   value: Email já existente
- *       500:
- *         description: Erro interno do servidor.
- */
 
-
-  
 }
