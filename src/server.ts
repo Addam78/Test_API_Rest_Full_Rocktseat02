@@ -1,4 +1,6 @@
-
+import dotenv from 'dotenv'
 import {app} from './app.js'
 
-app.listen({port:3333})
+import 'dotenv/config';
+const PORT  = Number(process.env.PORT) 
+app.listen({port:PORT})
