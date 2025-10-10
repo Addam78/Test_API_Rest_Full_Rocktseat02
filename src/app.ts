@@ -5,6 +5,8 @@ import { randomUUID, type UUID } from "crypto"
 import {hash} from 'bcrypt'
 //import { hash } from "crypto"
 import z, { email } from 'zod'
+import dotenv from 'dotenv'
+import 'dotenv/config'
 import { _email } from "zod/v4/core"
 import cookie from '@fastify/cookie'
 import {fastifySwagger} from '@fastify/swagger'

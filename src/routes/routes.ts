@@ -278,7 +278,8 @@ app.get('/validar_cadastro',{preHandler : [cookie_authorization], schema: {
 })
 
 //INSERIR LANCHE
-app.post('/inserir_lanche',{preHandler : [cookie_authorization]} ,async (req,reply)=>{
+app.post('/inserir_lanche',{preHandler : [cookie_authorization]},
+ async (req,reply)=>{
     //ADIICONAR VERIFICAÇÃO DE COOKIE
     const cookie_session = req.cookies.cookieSession
     //TRATIVA DOS DADOS 
