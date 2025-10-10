@@ -230,7 +230,43 @@ app.post('/registrar', {
 
 })
 //VERIFICAÇÃO DE COOKIES
-app.get('/validar_cadastro',{preHandler : [cookie_authorization]} ,async(req,reply)=>{
+app.get('/validar_cadastro',{preHandler : [cookie_authorization], schema: {
+        description: 'Valida o cadastro do usuário através do cookie de sessão',
+        tags: ['Autenticação'],
+        //security: [{ cookieAuth: [] }],
+        response: {
+            200: {
+                description: 'Usuário autenticado com sucesso',
+                type: 'object',
+                properties: {
+                    id: { 
+                        type: 'string', 
+                        format: 'uuid',
+                        description: 'ID único do usuário'
+                    },
+                    name: { 
+                        type: 'string',
+                        description: 'Nome do usuário'
+                    },
+                    session_cookie: { 
+                        type: 'string',
+                        description: 'Cookie de sessão ativo'
+                    }
+                },
+                example: {
+                    id: '123e4567-e89b-12d3-a456-426614174000',
+                    name: 'João Silva',
+                    session_cookie: 'abc123def456'
+                }
+            },
+            401: {
+                description: 'Sessão expirada ou inválida',
+                type: 'string',
+                example: 'Sessão expirada'
+            }
+        }
+    }
+  } , async(req,reply)=>{
         //BUSCA DE SESSION COOKIE
         const cookie_session = req.cookies.cookieSession
         const user = await db('users').where('session_cookie',cookie_session).first().select('id', 'name','session_cookie')
