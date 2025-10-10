@@ -9,7 +9,7 @@ import { _email } from "zod/v4/core"
 import cookie from '@fastify/cookie'
 import {fastifySwagger} from '@fastify/swagger'
 import {fastifySwaggerUi} from '@fastify/swagger-ui'
-import {routes} from '../routes/routes.js'
+import {routes} from './routes/routes.js'
 
 export const app = fastify()
 

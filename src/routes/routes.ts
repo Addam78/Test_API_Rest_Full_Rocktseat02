@@ -1,11 +1,11 @@
-import {app} from '../src/app.js'
+import {app} from '../app.js'
 import type { FastifyInstance } from "fastify"
-import db from "../src/database.js"
+import db from "../database.js"
 import {email, z} from 'zod'
 import { title } from "process"
 import { randomUUID, type UUID } from "crypto"
 import {hash} from 'bcrypt'
-import { cookie_authorization } from '../src/middlewares/authorization.js'
+import { cookie_authorization } from '../middlewares/authorization.js'
 
 
 const SALT_ROUNDS =10
@@ -55,7 +55,7 @@ app.post('/registrar', {
                     type: 'string',
                     format: 'email',
                     description: 'Email do usuário',
-                    examples: ['joao.silva@email.com']
+                    examples: ['joao.silva@gmail.com']
                 },
                 password: {
                     type: 'string',
@@ -139,7 +139,56 @@ app.post('/registrar', {
 
 
 //ROTAR PARA FAZER LOGIN
-    app.post('/acessar', async (req, reply) => {
+    app.post('/acessar', {
+    schema: {
+        description: 'Realizar login e criar sessão do usuário',
+        tags: ['Acesso a API'],
+        body: {
+            type: 'object',
+            required: ['name_user', 'email_user'],
+            properties: {
+                name_user: {
+                    type: 'string',
+                    minLength: 2,
+                    maxLength: 10,
+                    description: 'Nome do usuário',
+                    examples: ['João']
+                },
+                email_user: {
+                    type: 'string',
+                    format: 'email',
+                    description: 'Email do usuário',
+                    examples: ['joao@email.com']
+                }
+            }
+        },
+        response: {
+            200: {
+                description: 'Login realizado com sucesso',
+                type: 'string'
+            },
+            400: {
+                description: 'Dados inválidos',
+                type: 'object',
+                properties: {
+                    error: {
+                        type: 'string'
+                    }
+                }
+            },
+            404: {
+                description: 'Usuário não encontrado',
+                type: 'object',
+                properties: {
+                    error: {
+                        type: 'string'
+                    }
+                }
+            }
+        },
+        security: []
+    }
+}, async (req, reply) => {
 
         const createUserBodySchema = z.object({
             name_user: z.string().min(2).max(10),
@@ -179,10 +228,6 @@ app.post('/registrar', {
 
         }
 
-        
-   
-
-      
 })
 //VERIFICAÇÃO DE COOKIES
 app.get('/validar_cadastro',{preHandler : [cookie_authorization]} ,async(req,reply)=>{
@@ -313,7 +358,7 @@ app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,repl
 })
 
 
-app.post('/visualizacao_unica',{preHandler : [cookie_authorization]},async(req,reply) =>{
+app.post('/visualizacao_unica_lanche',{preHandler : [cookie_authorization]},async(req,reply) =>{
     //PARA VISUALZIAR UMA UNICA REFEIÇÃO, NECESSARIO ID
     //CRIAR POR TIPO DE NOME
   const cookie_session = req.cookies.cookieSession;
