@@ -6,6 +6,7 @@ import { title } from "process"
 import { randomUUID, type UUID } from "crypto"
 import {hash} from 'bcrypt'
 import { cookie_authorization } from '../middlewares/authorization.js'
+import knex from 'knex'
 
 
 const SALT_ROUNDS =10
@@ -152,13 +153,13 @@ app.post('/registrar', {
                     minLength: 2,
                     maxLength: 10,
                     description: 'Nome do usuário',
-                    examples: ['João']
+                    examples: ['Maicon']
                 },
                 email_user: {
                     type: 'string',
                     format: 'email',
                     description: 'Email do usuário',
-                    examples: ['joao@email.com']
+                    examples: ['maicondouglas@gmail.com']
                 }
             }
         },
@@ -230,42 +231,7 @@ app.post('/registrar', {
 
 })
 //VERIFICAÇÃO DE COOKIES
-app.get('/validar_cadastro',{preHandler : [cookie_authorization], schema: {
-        description: 'Valida o cadastro do usuário através do cookie de sessão',
-        tags: ['Autenticação'],
-        //security: [{ cookieAuth: [] }],
-        response: {
-            200: {
-                description: 'Usuário autenticado com sucesso',
-                type: 'object',
-                properties: {
-                    id: { 
-                        type: 'string', 
-                        format: 'uuid',
-                        description: 'ID único do usuário'
-                    },
-                    name: { 
-                        type: 'string',
-                        description: 'Nome do usuário'
-                    },
-                    session_cookie: { 
-                        type: 'string',
-                        description: 'Cookie de sessão ativo'
-                    }
-                },
-                example: {
-                    id: '123e4567-e89b-12d3-a456-426614174000',
-                    name: 'João Silva',
-                    session_cookie: 'abc123def456'
-                }
-            },
-            401: {
-                description: 'Sessão expirada ou inválida',
-                type: 'string',
-                example: 'Sessão expirada'
-            }
-        }
-    }
+app.get('/validar_cadastro',{preHandler : [cookie_authorization]
   } , async(req,reply)=>{
         //BUSCA DE SESSION COOKIE
         const cookie_session = req.cookies.cookieSession
@@ -334,6 +300,7 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
     .join('users', 'meal.user_id', '=', 'users.id')
     .where('meal.user_id', user.id) // só os lanches desse usuário
     .select(
+      'meal.id',
       'meal.name_meal',
       'meal.description_meal',
       'meal.user_id',
@@ -423,5 +390,24 @@ app.post('/visualizacao_unica_lanche',{preHandler : [cookie_authorization]},asyn
   }
 }) 
 
+//DELETAR LANCHE
+app.delete('/delete/:id',{preHandler : [cookie_authorization]},async(req,reply) =>{
+  
+  try{
+       const {id} = req.params as {
+      id:UUID
+    }
+
+    await db('meal').where({id}).delete()
+    return reply.status(200).send(`Lanche deletado com sucesso`) 
+  }
+  catch(error){
+    return error
+  }
+    
+ 
+    
+    
+})
 
 }
