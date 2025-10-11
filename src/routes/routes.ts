@@ -248,7 +248,7 @@ app.post('/inserir_lanche',{preHandler : [cookie_authorization]},
  async (req,reply)=>{
     //ADIICONAR VERIFICAÇÃO DE COOKIE
     const cookie_session = req.cookies.cookieSession
-    //TRATIVA DOS DADOS 
+    //TRATIVA DOS DADOS  TABELA MEAL
     const RegisterMealBodySchema= z.object({
         name_meal:z.string().min(2),
         description_meal:z.string().min(2),
@@ -256,6 +256,9 @@ app.post('/inserir_lanche',{preHandler : [cookie_authorization]},
             const date = new Date(val)
         })  
      })
+
+     //TRATIVA DOS DADOS TABELA USER_MEAL
+
       
 
     // 1. BUSCA NO BANCO (Exemplo: Usando o session_id para encontrar o usuário)
@@ -267,13 +270,26 @@ app.post('/inserir_lanche',{preHandler : [cookie_authorization]},
    // return user ? user.id : null; 
     const{name_meal,description_meal,time_meal} = RegisterMealBodySchema.parse(req.body)
     
-    await db('meal').insert({
-        id:randomUUID(),
+    await db.transaction(async (trx) =>{
+
+      const new_meal_id = randomUUID()
+      const [inserted_meal_id] = await trx('meal').insert({
+        id:new_meal_id,
         name_meal,
         description_meal,
-        time_meal,
-        user_id:user.id  
+       
+      }).returning('id')
+      console.log(inserted_meal_id.id)
+
+      await trx('user_meal').insert({
+        id:randomUUID(),
+        user_id:user.id,
+        meal_id:inserted_meal_id.id,
+        time_meal:time_meal
+
+      })
     })
+    
 
     reply.send(`Lanche ${name_meal} cadastrado com sucesso`)
 
@@ -290,27 +306,25 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
     .select('id')
     .where('session_cookie', cookie_session)
     .first();
+    console.log(user)
 
   if (!user) {
     return reply.status(401).send({ error: 'Usuário inválido ou sessão expirada' });
   }
 
   // 3. Faz a consulta com JOIN e filtro pelo ID do usuário
+  
   const view = await db('meal')
-    .join('users', 'meal.user_id', '=', 'users.id')
-    .where('meal.user_id', user.id) // só os lanches desse usuário
+    .join('user_meal','meal.id', '=', 'user_meal.meal_id')
+    .join( 'users', 'user_meal.user_id', '=', 'users.id')
+    .where('user_meal.user_id', user.id) 
     .select(
-      'meal.id',
-      'meal.name_meal',
-      'meal.description_meal',
-      'meal.user_id',
-      'users.id',
-      'users.name as user_name',
-      'users.email',
-      
+      'user_meal.id',
+      'users.name',
+      'meal.name_meal'
     );
 
-  return view;
+  return(view)
 });
 
 app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,reply)=>{
@@ -391,14 +405,14 @@ app.post('/visualizacao_unica_lanche',{preHandler : [cookie_authorization]},asyn
 }) 
 
 //DELETAR LANCHE
-app.delete('/delete/:id',{preHandler : [cookie_authorization]},async(req,reply) =>{
+app.delete('/deletar/:id',{preHandler : [cookie_authorization]},async(req,reply) =>{
   
   try{
        const {id} = req.params as {
       id:UUID
     }
 
-    await db('meal').where({id}).delete()
+    await db('user_meal').where({id}).delete()
     return reply.status(200).send(`Lanche deletado com sucesso`) 
   }
   catch(error){
