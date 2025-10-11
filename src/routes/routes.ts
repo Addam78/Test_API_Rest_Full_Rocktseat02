@@ -391,12 +391,15 @@ app.post('/visualizacao_unica_lanche',{preHandler : [cookie_authorization]},asyn
 
   try {
     const viewunica = await db('meal')
-      .join('users', 'meal.user_id', '=', 'users.id')
+      .join('user_meal','meal.id', '=', 'user_meal.meal_id')
+      .join( 'users', 'user_meal.user_id', '=', 'users.id')
       .select('meal.name_meal', 'meal.description_meal')
       .where('meal.name_meal', name_search)
       .andWhere('session_cookie', cookie_session)
       .first()
     return viewunica
+
+    
   }
 
   catch (error) {
