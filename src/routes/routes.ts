@@ -306,7 +306,7 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
     .select('id')
     .where('session_cookie', cookie_session)
     .first();
-    console.log(user)
+    
 
   if (!user) {
     return reply.status(401).send({ error: 'Usuário inválido ou sessão expirada' });
@@ -319,7 +319,7 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
     .join( 'users', 'user_meal.user_id', '=', 'users.id')
     .where('user_meal.user_id', user.id) 
     .select(
-      'user_meal.id',
+      'user_meal.meal_id',
       'users.name',
       'meal.name_meal'
     );
@@ -335,15 +335,20 @@ app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,repl
     // console.log(verifica_cookie)
 
     //ID DO USARIO
-    const id_usuario = await db('users').select('id').where({ 'session_cookie': cookie_authorization }).first()
+    const id_usuario = await db('users').select('id').where({ 'session_cookie': verifica_cookie }).first()
 
 
     //ID DO LANCHE COM BASE USUARIO LOGADO 
     const meal_id = await db('meal')
-      .join('users', 'meal.user_id', '=', 'users.id')
-      .select('meal.id')
+      .join('user_meal','meal.id', '=', 'user_meal.meal_id')
+      .join( 'users', 'user_meal.user_id', '=', 'users.id')
+      .select('user_meal.meal_id')
       .where('users.session_cookie', verifica_cookie)
       .first()
+      console.log(meal_id)
+
+     
+    
 
     if (!verifica_cookie) {
       return 'error'
@@ -356,15 +361,21 @@ app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,repl
         id_meal_update: UUID
       }
 
-
-      await db('meal').update({
-        id: id_meal_update,
-        name_meal: name_meal_update,
-        description_meal: description_meal_update
+      //CRIANDO TRANSACTION
+      await db.transaction(async(trx) =>{
+          await trx('user_meal').update({
+        meal_id: id_meal_update,
       }).where({ 'id': id_meal_update })
 
-
-    }
+      await trx('meal').update({
+        name_meal: name_meal_update,
+        description_meal: description_meal_update
+      })
+     
+    })
+     return 'lanche alterado'
+    } 
+    
 
   }
   catch (error) {
