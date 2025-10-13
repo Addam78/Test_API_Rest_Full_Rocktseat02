@@ -244,10 +244,11 @@ app.get('/validar_cadastro',{preHandler : [cookie_authorization]
 })
 
 //INSERIR LANCHE
-app.post('/inserir_lanche',{preHandler : [cookie_authorization]} ,async (req,reply)=>{
+app.post('/inserir_lanche',{preHandler : [cookie_authorization]},
+ async (req,reply)=>{
     //ADIICONAR VERIFICAÇÃO DE COOKIE
     const cookie_session = req.cookies.cookieSession
-    //TRATIVA DOS DADOS 
+    //TRATIVA DOS DADOS  TABELA MEAL
     const RegisterMealBodySchema= z.object({
         name_meal:z.string().min(2),
         description_meal:z.string().min(2),
@@ -255,6 +256,9 @@ app.post('/inserir_lanche',{preHandler : [cookie_authorization]} ,async (req,rep
             const date = new Date(val)
         })  
      })
+
+     //TRATIVA DOS DADOS TABELA USER_MEAL
+
       
 
     // 1. BUSCA NO BANCO (Exemplo: Usando o session_id para encontrar o usuário)
@@ -266,13 +270,26 @@ app.post('/inserir_lanche',{preHandler : [cookie_authorization]} ,async (req,rep
    // return user ? user.id : null; 
     const{name_meal,description_meal,time_meal} = RegisterMealBodySchema.parse(req.body)
     
-    await db('meal').insert({
-        id:randomUUID(),
+    await db.transaction(async (trx) =>{
+
+      const new_meal_id = randomUUID()
+      const [inserted_meal_id] = await trx('meal').insert({
+        id:new_meal_id,
         name_meal,
         description_meal,
-        time_meal,
-        user_id:user.id  
+       
+      }).returning('id')
+      console.log(inserted_meal_id.id)
+
+      await trx('user_meal').insert({
+        id:randomUUID(),
+        user_id:user.id,
+        meal_id:inserted_meal_id.id,
+        time_meal:time_meal
+
+      })
     })
+    
 
     reply.send(`Lanche ${name_meal} cadastrado com sucesso`)
 
@@ -289,27 +306,25 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
     .select('id')
     .where('session_cookie', cookie_session)
     .first();
+    
 
   if (!user) {
     return reply.status(401).send({ error: 'Usuário inválido ou sessão expirada' });
   }
 
   // 3. Faz a consulta com JOIN e filtro pelo ID do usuário
+  
   const view = await db('meal')
-    .join('users', 'meal.user_id', '=', 'users.id')
-    .where('meal.user_id', user.id) // só os lanches desse usuário
+    .join('user_meal','meal.id', '=', 'user_meal.meal_id')
+    .join( 'users', 'user_meal.user_id', '=', 'users.id')
+    .where('user_meal.user_id', user.id) 
     .select(
-      'meal.id',
-      'meal.name_meal',
-      'meal.description_meal',
-      'meal.user_id',
-      'users.id',
-      'users.name as user_name',
-      'users.email',
-      
+      'user_meal.meal_id',
+      'users.name',
+      'meal.name_meal'
     );
 
-  return view;
+  return(view)
 });
 
 app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,reply)=>{
@@ -320,15 +335,20 @@ app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,repl
     // console.log(verifica_cookie)
 
     //ID DO USARIO
-    const id_usuario = await db('users').select('id').where({ 'session_cookie': cookie_authorization }).first()
+    const id_usuario = await db('users').select('id').where({ 'session_cookie': verifica_cookie }).first()
 
 
     //ID DO LANCHE COM BASE USUARIO LOGADO 
     const meal_id = await db('meal')
-      .join('users', 'meal.user_id', '=', 'users.id')
-      .select('meal.id')
+      .join('user_meal','meal.id', '=', 'user_meal.meal_id')
+      .join( 'users', 'user_meal.user_id', '=', 'users.id')
+      .select('user_meal.meal_id')
       .where('users.session_cookie', verifica_cookie)
       .first()
+      console.log(meal_id)
+
+     
+    
 
     if (!verifica_cookie) {
       return 'error'
@@ -341,15 +361,29 @@ app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,repl
         id_meal_update: UUID
       }
 
+      //CRIANDO TRANSACTION
+      // await db.transaction(async(trx) =>{
+      //     await trx('user_meal').update({
+      //   meal_id: id_meal_update,
+      // })
+
+      // await trx('meal').update({
+      //   name_meal: name_meal_update,
+      //   description_meal: description_meal_update
+      // }).where({ 'id': id_meal_update })
+     
+      
+      // })
+
 
       await db('meal').update({
-        id: id_meal_update,
         name_meal: name_meal_update,
         description_meal: description_meal_update
       }).where({ 'id': id_meal_update })
-
-
-    }
+   
+     return 'lanche alterado'
+    } 
+    
 
   }
   catch (error) {
@@ -376,21 +410,29 @@ app.post('/visualizacao_unica_lanche',{preHandler : [cookie_authorization]},asyn
 
   try {
     const viewunica = await db('meal')
-      .join('users', 'meal.user_id', '=', 'users.id')
+      .join('user_meal','meal.id', '=', 'user_meal.meal_id')
+      .join( 'users', 'user_meal.user_id', '=', 'users.id')
       .select('meal.name_meal', 'meal.description_meal')
       .where('meal.name_meal', name_search)
       .andWhere('session_cookie', cookie_session)
       .first()
-    return viewunica
+
+      if(viewunica){
+        return viewunica
+      }
+      else{
+        return 'Lanche não existe'
+      }
+    
   }
 
   catch (error) {
-    console.error
+    return error
   }
 }) 
 
 //DELETAR LANCHE
-app.delete('/delete/:id',{preHandler : [cookie_authorization]},async(req,reply) =>{
+app.delete('/deletar/:id',{preHandler : [cookie_authorization]},async(req,reply) =>{
   
   try{
        const {id} = req.params as {
