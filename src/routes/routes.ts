@@ -137,8 +137,6 @@ app.post('/registrar', {
 
 })
 
-
-
 //ROTAR PARA FAZER LOGIN
     app.post('/acessar', {
     schema: {
