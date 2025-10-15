@@ -314,7 +314,8 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
     .select(
       'user_meal.meal_id',
       'users.name',
-      'meal.name_meal'
+      'meal.name_meal',
+      'meal.diet'
     )
 
     const count = await db('meal')
@@ -322,10 +323,38 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
     .where('user_meal.user_id', user.id)
     .count('* as total');
 
-  return{
-    data: view,
-    total:count[0].total
-  }
+    const totalRefeicoesdentrodieta = await db('meal')
+  .join('user_meal', 'meal.id', '=', 'user_meal.meal_id')
+  .join('users', 'users.id', '=', 'user_meal.user_id')
+  .where('meal.diet', 's')
+  .andWhere('users.id', user.id) // substitua user.id pelo ID do usuário
+  .count('meal.diet as Refeicoes_dentro_da_dieta')
+
+   const totalRefeicoesforadieta= await db('meal')
+  .join('user_meal', 'meal.id', '=', 'user_meal.meal_id')
+  .join('users', 'users.id', '=', 'user_meal.user_id')
+  .where('meal.diet', 'n')
+  .andWhere('users.id', user.id) // substitua user.id pelo ID do usuário
+  .count('meal.diet as Refeicoes_dentro_da_dieta')
+
+
+  //.groupBy('meal.name_meal');
+    
+    return {
+      view,
+      count,
+      totalRefeicoesdentrodieta,
+      totalRefeicoesforadieta
+
+    }
+    
+  //   return{
+  //   data: view,
+  //   //TOTAL DE REFEIÇÕES
+  //   total:count[0].total
+  //   //TOTAL DE REFEIÇÕES NA DIETA
+  //   //total:totalRefeicoes.refeições_na_dieta
+  // }
 });
 
 app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,reply)=>{
