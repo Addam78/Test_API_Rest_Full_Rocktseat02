@@ -345,16 +345,8 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
       count,
       totalRefeicoesdentrodieta,
       totalRefeicoesforadieta
-
     }
-    
-  //   return{
-  //   data: view,
-  //   //TOTAL DE REFEIÇÕES
-  //   total:count[0].total
-  //   //TOTAL DE REFEIÇÕES NA DIETA
-  //   //total:totalRefeicoes.refeições_na_dieta
-  // }
+  
 });
 
 app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,reply)=>{
