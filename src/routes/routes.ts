@@ -415,7 +415,15 @@ app.post('/visualizacao_unica_lanche',{preHandler : [cookie_authorization]},asyn
       .where('meal.name_meal', name_search)
       .andWhere('session_cookie', cookie_session)
       .first()
-    return viewunica
+
+    
+    if(!viewunica){
+      return 'Lanche não existe'
+    }
+    else{
+       return viewunica
+    } 
+   
 
   }
 
