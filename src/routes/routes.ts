@@ -335,7 +335,7 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
   .join('users', 'users.id', '=', 'user_meal.user_id')
   .where('meal.diet', 'n')
   .andWhere('users.id', user.id) // substitua user.id pelo ID do usuário
-  .count('meal.diet as Refeicoes_dentro_da_dieta')
+  .count('meal.diet as Refeicoes_fora_dieta')
 
 
   //.groupBy('meal.name_meal');
@@ -344,7 +344,7 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
       view,
       count,
       totalRefeicoesdentrodieta,
-      totalRefeicoesforadieta
+      totalRefeicoesforadieta,
     }
   
 });
@@ -368,22 +368,24 @@ app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,repl
 
     } else {
       //PASSAR OS REQ.BODY DO USUARIOS
-      const { id_meal_update, name_meal_update, description_meal_update } = req.body as {
+      const { id_meal_update, name_meal_update, description_meal_update, diet_meal_update } = req.body as {
         name_meal_update: string
         description_meal_update: string
         id_meal_update: UUID
+        diet_meal_update : string
       }
 
       //CRIANDO TRANSACTION
       await db.transaction(async(trx) =>{
-          await trx('user_meal').update({
-        meal_id: id_meal_update,
-      }).where({ 'id': id_meal_update })
+      //     await trx('user_meal').update({
+      //   meal_id: id_meal_update,
+      // })
 
       await trx('meal').update({
         name_meal: name_meal_update,
-        description_meal: description_meal_update
-      })
+        description_meal: description_meal_update,
+        diet: diet_meal_update
+      }).where({ 'id': id_meal_update })
      
     })
      return 'lanche alterado'
@@ -409,7 +411,7 @@ app.post('/visualizacao_unica_lanche',{preHandler : [cookie_authorization]},asyn
     const viewunica = await db('meal')
       .join('user_meal','meal.id', '=', 'user_meal.meal_id')
       .join( 'users', 'user_meal.user_id', '=', 'users.id')
-      .select('meal.name_meal', 'meal.description_meal')
+      .select('meal.name_meal', 'meal.description_meal','meal.diet')
       .where('meal.name_meal', name_search)
       .andWhere('session_cookie', cookie_session)
       .first()
