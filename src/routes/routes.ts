@@ -432,9 +432,11 @@ app.delete('/deletar/:id',{preHandler : [cookie_authorization]},async(req,reply)
       id:UUID
     }
 
-    await db('user_meal').where({id}).delete()
+    await db('meal').where({id}).delete()
+    await db('user_meal').where({'meal_id': id}).delete()
     return reply.status(200).send(`Lanche deletado com sucesso`) 
   }
+
   catch(error){
     return error
   }
