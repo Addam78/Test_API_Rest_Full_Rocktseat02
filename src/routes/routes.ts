@@ -8,6 +8,7 @@ import {hash} from 'bcrypt'
 import { cookie_authorization } from '../middlewares/authorization.js'
 import knex from 'knex'
 import { id } from 'zod/v4/locales'
+import { error } from 'console'
 
 
 const SALT_ROUNDS =10
@@ -337,61 +338,123 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
   
 });
 
-app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,reply)=>{
+// app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,reply)=>{
   
+//   try {
+//     const verifica_cookie = req.cookies.cookieSession
+
+//     //PEGA ID DO USUARIO LOGADO
+//      const user = await db('users').select('id')
+//         .where('session_cookie', verifica_cookie) 
+//         .first();
+//       console.log(user)
+
+    
+//     if(!user){
+//       return error
+//     }
+    
+//     else {
+//       //PASSAR OS REQ.BODY DO USUARIOS
+//       const { id_meal_update, name_meal_update, description_meal_update, diet_meal_update } = req.body as {
+//         name_meal_update: string
+//         description_meal_update: string
+//         id_meal_update: UUID
+//         diet_meal_update : string
+//       }
+
+//       const meal = await db('meal').where({
+//         'id':id_meal_update,
+//         'user_id':user.id
+//       })
+
+//       if(!meal){
+//         return reply.status(404).send({ error: 'Lanche não encontrado ou você não tem permissão para alterá-lo' });
+//       }
+
+     
+    
+//         const alterar = await db('meal').update({
+//         name_meal: name_meal_update,
+//         description_meal: description_meal_update,
+//         diet: diet_meal_update
+//       }).where({ 'id': id_meal_update })
+      
+//       if(alterar){
+//         return reply.code(201).send('Lanche alterado com sucesso')
+//       }
+
+//       else {
+//         return `ID do lanche invalido`
+//       }
+    
+
+     
+//     } 
+    
+//   }
+//   catch (error) {
+//     console.error(error)
+//   }
+
+// })
+
+app.post('/alterar_lanche',{preHandler: [cookie_authorization]},async (req,reply) =>{
   try {
-    const verifica_cookie = req.cookies.cookieSession
-    
-    //const id_usuario = await db('users').select('id').where({ 'session_cookie': verifica_cookie }).first()
- 
-    // const meal_id = await db('meal')
-    //   .join('users', 'meal.user_id', '=', 'users.id')
-    //   .select('meal.id')
-    //   .where('users.session_cookie', verifica_cookie)
-    //   .first()
-      //console.log(meal_id)
+  const verifica_cookie = req.cookies.cookieSession;
 
-      
-    if (!verifica_cookie) {
-      return 'error'
+  // PEGA ID DO USUARIO LOGADO
+  const user = await db('users')
+    .select('id')
+    .where('session_cookie', verifica_cookie) 
+    .first();
 
-    } else {
-      //PASSAR OS REQ.BODY DO USUARIOS
-      const { id_meal_update, name_meal_update, description_meal_update, diet_meal_update } = req.body as {
-        name_meal_update: string
-        description_meal_update: string
-        id_meal_update: UUID
-        diet_meal_update : string
-      }
-
-    
-        const alterar = await db('meal').update({
-        name_meal: name_meal_update,
-        description_meal: description_meal_update,
-        diet: diet_meal_update
-      }).where({ 'id': id_meal_update })
-      
-      if(alterar){
-        return reply.code(201).send('Lanche alterado com sucesso')
-      }
-
-      else {
-        return `ID do lanche invalido`
-      }
-    
-     
-      
-
-     
-    } 
-    
-  }
-  catch (error) {
-    console.error(error)
+  // ✅ CORREÇÃO 1: Retorna reply correto
+  if(!user){
+    return reply.status(401).send({ error: 'Sessão inválida ou expirada' });
   }
 
+  // PASSAR OS REQ.BODY DO USUARIOS
+  const { id_meal_update, name_meal_update, description_meal_update, diet_meal_update } = req.body as {
+    name_meal_update: string
+    description_meal_update: string
+    id_meal_update: UUID
+    diet_meal_update: string
+  }
+
+  // ✅ CORREÇÃO 2: Adiciona .first() para retornar objeto ou undefined
+  const meal = await db('meal')
+    .where({
+      'id': id_meal_update,
+      'user_id': user.id
+    })
+    .first();  // ← IMPORTANTE!
+
+  if(!meal){
+    return reply.status(404).send({ error: 'Lanche não encontrado ou você não tem permissão' });
+  }
+
+  // Atualiza o lanche
+  const alterar = await db('meal')
+    .update({
+      name_meal: name_meal_update,
+      description_meal: description_meal_update,
+      diet: diet_meal_update
+    })
+    .where({ 'id': id_meal_update });
+
+  // ✅ CORREÇÃO 3 e 4: Verifica corretamente e usa status 200
+  if(alterar === 0){
+    return reply.status(404).send({ error: 'ID do lanche inválido' });
+  }
+
+  return reply.status(200).send({ message: 'Lanche alterado com sucesso' });
+  
+} catch (error) {
+  console.error(error);
+  return reply.status(500).send({ error: 'Erro ao alterar lanche' });
+}
 })
-
 
 app.post('/visualizacao_unica_lanche',{preHandler : [cookie_authorization]},async(req,reply) =>{
     
