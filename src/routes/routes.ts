@@ -453,25 +453,29 @@ app.delete('/deletar/:id',{preHandler : [cookie_authorization]},async(req,reply)
     }
 
     const user = await db('users')
-        .select('id as user_id') // Pega o ID do usuário
+        .select('id ') // Pega o ID do usuário
         .where('session_cookie', cookie_session)
         .first();
 
     if (!user) {
         return reply.status(401).send({ error: 'Sessão inválida ou expirada.' });
     }
-    
-    await db('meal')
-    //.join('users', 'meal.user_id' ,'=', 'users.id')
-    .where({id}).delete()
-    //.andWhere('session_cookie',cookie_session)
-    
 
-    
-    //await db('user_meal').where({'meal_id': id}).delete()
-    return reply.status(200).send(`Lanche deletado com sucesso`) 
+    else{
+       await db('meal')
+   .where({
+            // Condição 1 (Alvo): ID da refeição a ser deletada
+             'user_id':user.id, 
+            // Condição 2 (Segurança): user_id da refeição deve ser o usuário logado
+            //user_id: user.user_id 
+        }).delete()
+   
   }
 
+       return reply.status(200).send(`Lanche deletado com sucesso`) 
+    }
+    
+   
   catch(error){
     return error
   }
