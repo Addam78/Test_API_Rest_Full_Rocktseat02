@@ -12,7 +12,7 @@ export async function up(knex: Knex): Promise<void> {
 
 export async function down(knex: Knex): Promise<void> {
       await knex.schema.alterTable('meal', (table) =>{
-       table.uuid('user_id').after('description_meal').notNullable()
+       table.uuid('user_id').after('description_meal')
        table.foreign('user_id').references('id').inTable('users')
     })
 }
