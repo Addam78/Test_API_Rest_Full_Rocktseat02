@@ -416,7 +416,6 @@ app.post('/visualizacao_unica_lanche',{preHandler : [cookie_authorization]},asyn
       .andWhere('session_cookie', cookie_session)
       .first()
 
-    
     if(!viewunica){
       return 'Lanche não existe'
     }
@@ -442,6 +441,7 @@ app.delete('/deletar/:id',{preHandler : [cookie_authorization]},async(req,reply)
 
     await db('meal').where({id}).delete()
     await db('user_meal').where({'meal_id': id}).delete()
+    
     return reply.status(200).send(`Lanche deletado com sucesso`) 
   }
 
