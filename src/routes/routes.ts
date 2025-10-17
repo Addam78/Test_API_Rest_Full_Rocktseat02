@@ -226,7 +226,7 @@ app.post('/registrar', {
 
             }
 
-            return "Login com sucesso"
+           reply.code(200).send('Acesso autorizado')
 
         }
 
@@ -241,7 +241,8 @@ app.get('/validar_cadastro',{preHandler : [cookie_authorization]
         if(!user){
             return 'Sessão expirada'
         }
-        return user   
+        reply.code(200).send('Cadastrado validado com sucesso')
+        console.log(user)
 })
 
 
@@ -256,6 +257,7 @@ app.post('/inserir_lanche',{preHandler : [cookie_authorization]},
         description_meal:z.string().min(2),
         time_meal:z.string().transform((val,ctx) =>{
             const date = new Date(val)
+            return date
         }),  
         diet:z.enum(['s','n'])
        
@@ -268,26 +270,7 @@ app.post('/inserir_lanche',{preHandler : [cookie_authorization]},
 
     const{name_meal,description_meal,time_meal,diet} = RegisterMealBodySchema.parse(req.body)
     
-    // await db.transaction(async (trx) =>{
-
-    //   const new_meal_id = randomUUID()
-    //   const [inserted_meal_id] = await trx('meal').insert({
-    //     id:new_meal_id,
-    //     name_meal,
-    //     description_meal,
-    //     diet
-       
-    //   }).returning('id')
-    //   console.log(inserted_meal_id.id)
-
-    //   await trx('user_meal').insert({
-    //     id:randomUUID(),
-    //     user_id:user.id,
-    //     meal_id:inserted_meal_id.id,
-    //     time_meal:time_meal
-
-    //   })
-    // })
+   
     await db('meal').insert({
       id:randomUUID(),
       name_meal,
@@ -297,7 +280,7 @@ app.post('/inserir_lanche',{preHandler : [cookie_authorization]},
       diet
 
     })
-    reply.send(`Lanche ${name_meal} cadastrado com sucesso`)
+    reply.code(201).send(`Lanche ${name_meal} cadastrado com sucesso`)
 
 })
 
@@ -324,7 +307,8 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
       'meal.id',
       'users.name',
       'meal.name_meal',
-      'meal.diet'
+      'meal.diet',
+      'meal.time_meal'
     )
 
     const count = await db('meal')
@@ -343,15 +327,6 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
   .where('meal.diet', 'n')
   .andWhere('meal.user_id', user.id) // substitua user.id pelo ID do usuário
   .count('meal.diet as Refeicoes_fora_da_dieta')
-  //  const totalRefeicoesforadieta= await db('meal')
-  // .join('user_meal', 'meal.id', '=', 'user_meal.meal_id')
-  // .join('users', 'users.id', '=', 'user_meal.user_id')
-  // .where('meal.diet', 'n')
-  // .andWhere('users.id', user.id) // substitua user.id pelo ID do usuário
-  // .count('meal.diet as Refeicoes_fora_dieta')
-
-
-  //.groupBy('meal.name_meal');
     
     return {
       view,
@@ -366,7 +341,8 @@ app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,repl
     
   try {
     const verifica_cookie = req.cookies.cookieSession
-  
+    
+
     const id_usuario = await db('users').select('id').where({ 'session_cookie': verifica_cookie }).first()
  
     const meal_id = await db('meal')
@@ -374,11 +350,9 @@ app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,repl
       .select('meal.id')
       .where('users.session_cookie', verifica_cookie)
       .first()
-      console.log(meal_id)
+      //console.log(meal_id)
 
-     
-    
-
+      
     if (!verifica_cookie) {
       return 'error'
 
@@ -392,14 +366,18 @@ app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,repl
       }
 
     
-      await db('meal').update({
+
+      
+         await db('meal').update({
         name_meal: name_meal_update,
         description_meal: description_meal_update,
         diet: diet_meal_update
       }).where({ 'id': id_meal_update })
-     
     
-     return 'lanche alterado'
+     return reply.code(201).send('Lanche alterado com sucesso')
+      
+
+     
     } 
     
   }
