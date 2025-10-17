@@ -338,18 +338,17 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
 });
 
 app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,reply)=>{
-    
+  
   try {
     const verifica_cookie = req.cookies.cookieSession
     
-
-    const id_usuario = await db('users').select('id').where({ 'session_cookie': verifica_cookie }).first()
+    //const id_usuario = await db('users').select('id').where({ 'session_cookie': verifica_cookie }).first()
  
-    const meal_id = await db('meal')
-      .join('users', 'meal.user_id', '=', 'users.id')
-      .select('meal.id')
-      .where('users.session_cookie', verifica_cookie)
-      .first()
+    // const meal_id = await db('meal')
+    //   .join('users', 'meal.user_id', '=', 'users.id')
+    //   .select('meal.id')
+    //   .where('users.session_cookie', verifica_cookie)
+    //   .first()
       //console.log(meal_id)
 
       
@@ -366,15 +365,21 @@ app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,repl
       }
 
     
-
-      
-         await db('meal').update({
+        const alterar = await db('meal').update({
         name_meal: name_meal_update,
         description_meal: description_meal_update,
         diet: diet_meal_update
       }).where({ 'id': id_meal_update })
+      
+      if(alterar){
+        return reply.code(201).send('Lanche alterado com sucesso')
+      }
+
+      else {
+        return `ID do lanche invalido`
+      }
     
-     return reply.code(201).send('Lanche alterado com sucesso')
+     
       
 
      
