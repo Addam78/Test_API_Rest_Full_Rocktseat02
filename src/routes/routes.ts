@@ -338,66 +338,7 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
   
 });
 
-// app.post('/alterar_lanche',{preHandler : [cookie_authorization]},async (req,reply)=>{
-  
-//   try {
-//     const verifica_cookie = req.cookies.cookieSession
 
-//     //PEGA ID DO USUARIO LOGADO
-//      const user = await db('users').select('id')
-//         .where('session_cookie', verifica_cookie) 
-//         .first();
-//       console.log(user)
-
-    
-//     if(!user){
-//       return error
-//     }
-    
-//     else {
-//       //PASSAR OS REQ.BODY DO USUARIOS
-//       const { id_meal_update, name_meal_update, description_meal_update, diet_meal_update } = req.body as {
-//         name_meal_update: string
-//         description_meal_update: string
-//         id_meal_update: UUID
-//         diet_meal_update : string
-//       }
-
-//       const meal = await db('meal').where({
-//         'id':id_meal_update,
-//         'user_id':user.id
-//       })
-
-//       if(!meal){
-//         return reply.status(404).send({ error: 'Lanche não encontrado ou você não tem permissão para alterá-lo' });
-//       }
-
-     
-    
-//         const alterar = await db('meal').update({
-//         name_meal: name_meal_update,
-//         description_meal: description_meal_update,
-//         diet: diet_meal_update
-//       }).where({ 'id': id_meal_update })
-      
-//       if(alterar){
-//         return reply.code(201).send('Lanche alterado com sucesso')
-//       }
-
-//       else {
-//         return `ID do lanche invalido`
-//       }
-    
-
-     
-//     } 
-    
-//   }
-//   catch (error) {
-//     console.error(error)
-//   }
-
-// })
 
 app.post('/alterar_lanche',{preHandler: [cookie_authorization]},async (req,reply) =>{
   try {
@@ -409,7 +350,7 @@ app.post('/alterar_lanche',{preHandler: [cookie_authorization]},async (req,reply
     .where('session_cookie', verifica_cookie) 
     .first();
 
-  // ✅ CORREÇÃO 1: Retorna reply correto
+  
   if(!user){
     return reply.status(401).send({ error: 'Sessão inválida ou expirada' });
   }
@@ -422,7 +363,7 @@ app.post('/alterar_lanche',{preHandler: [cookie_authorization]},async (req,reply
     diet_meal_update: string
   }
 
-  // ✅ CORREÇÃO 2: Adiciona .first() para retornar objeto ou undefined
+
   const meal = await db('meal')
     .where({
       'id': id_meal_update,
