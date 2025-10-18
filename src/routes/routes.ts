@@ -127,12 +127,13 @@ app.post('/inserir_lanche',{preHandler : [cookie_authorization]},
     const RegisterMealBodySchema= z.object({
         name_meal:z.string().min(2),
         description_meal:z.string().min(2),
-        time_meal:z.string().transform((val,ctx) =>{
-            const date = new Date(val)
-            return date
-        }),  
+
+        time_meal:z.string().pipe(z.coerce.date()),
+        
+
         diet:z.enum(['s','n'])
      })
+     
 
      //PEGAR O ID DO USUARIO DE ACORDO COM O COOKIE DA SESSÃO
     const user = await db('users').select('id')
@@ -166,7 +167,6 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
     .where('session_cookie', cookie_session)
     .first();
     
-
   if (!user) {
     return reply.code(401).send({ error: 'Usuário inválido ou sessão expirada' });
   }
@@ -179,7 +179,12 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
       'users.name',
       'meal.name_meal',
       'meal.diet',
-      'meal.time_meal'
+      db.raw(`
+            strftime('%Y-%m-%d %H:%M:%S', 
+                datetime(meal.time_meal / 1000, 'unixepoch', 'localtime')
+            ) as time_meal_formatado
+        `)
+      
     )
 
     const count = await db('meal')
@@ -187,7 +192,7 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
     .where('meal.user_id', user.id)
     .count('* as total');
 
-    const totalRefeicoesdentrodieta = await db('meal')
+  const totalRefeicoesdentrodieta = await db('meal')
   .join('users', 'meal.user_id', '=', 'users.id')
   .where('meal.diet', 's')
   .andWhere('meal.user_id', user.id) // substitua user.id pelo ID do usuário
@@ -198,12 +203,14 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
   .where('meal.diet', 'n')
   .andWhere('meal.user_id', user.id) // substitua user.id pelo ID do usuário
   .count('meal.diet as Refeicoes_fora_da_dieta')
-    
+
+
     return {
       view,
        count,
       totalRefeicoesdentrodieta,
        totalRefeicoesforadieta,
+      
     }
   
 });
