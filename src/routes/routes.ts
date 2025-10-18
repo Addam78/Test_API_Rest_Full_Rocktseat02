@@ -15,90 +15,15 @@ const SALT_ROUNDS =10
 
 export  async function routes(app:FastifyInstance) {
 
-  app.get('/', {
-    schema: {
-      description: 'Lista todos os usuários cadastrados',
-      tags: ['Usuarios'],
-      response: {
-        200: {
-          description: 'Lista de usuários retornada com sucesso',
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string', format: 'uuid' },
-              name: { type: 'string' },
-              email: { type: 'string', format: 'email' }
-            }
-          }
-        }
-      }
-    }
-  }, async (req, reply) => {
+  app.get('/',async (req, reply) => {
     const users = await db.select('id', 'name', 'email').from('users')
-    return users
+    return reply.code(200).send(users)
   })
 
-//ROTA DE CADASTRO, PEGAR NOME,SENHA E VINCULAR AO BANCO
-app.post('/registrar', {
-    schema: {
-        description: 'Registrar um novo usuário no sistema',
-        tags: ['Registrar Usuários'],
-        body: {
-            type: 'object',
-            required: ['name', 'email', 'password'],
-            properties: {
-                name: {
-                    type: 'string',
-                    minLength: 2,
-                    description: 'Nome do usuário',
-                    examples: ['João Silva']
-                },
-                email: {
-                    type: 'string',
-                    format: 'email',
-                    description: 'Email do usuário',
-                    examples: ['joao.silva@gmail.com']
-                },
-                password: {
-                    type: 'string',
-                    minLength: 4,
-                    maxLength: 20,
-                    description: 'Senha do usuário (será armazenada com hash)',
-                    examples: ['senha123']
-                }
-            }
-        },
-        response: {
-            201: {
-                description: 'Usuário cadastrado com sucesso',
-                type: 'string'
-            },
-            400: {
-                description: 'Erro de validação ou dados duplicados',
-                type: 'object',
-                properties: {
-                    error: {
-                        type: 'string'
-                    }
-                }
-            },
-            500: {
-                description: 'Erro interno do servidor',
-                type: 'object',
-                properties: {
-                    error: {
-                        type: 'string'
-                    }
-                }
-            }
-        },
-        security: []
-    }
-},
-  async (req,reply) =>{
-    try {
-        
+//ROTA DE CADASTRO USUARIO
+app.post('/registrar',async (req,reply) =>{
+    
+  try {
         //TRATIVA TIPAGEM DOS DADOS COM ZOD
         const createUserBodySchema = z.object({
             name:z.string().nonempty().min(2),
@@ -112,13 +37,13 @@ app.post('/registrar', {
         const existingUser = await db('users').where({ name}).first();
         const verifica_email = await db('users').where({email}).first()
 
-        if (existingUser) {
-           return reply.code(400).send('Nome  ja existentes')
+        if (existingUser ) {
+           return reply.code(400).send('Nome ja existente')
         }
         if(verifica_email){
-            return reply.code(400).send('email ja existentes')
+          return reply.code(400).send('endereço de email ja existente')
         }
-     
+       
         //PASSANDO OS ARQUIVOS PARA A VARIAVEL E HABILITANDO HASH
         const password_hash = await hash(password, SALT_ROUNDS)
         
@@ -134,7 +59,6 @@ app.post('/registrar', {
         reply.code(201).send('Usuario cadastrado com sucesso')
     }catch(error){
         return error
-
     }
 
 })
@@ -142,56 +66,7 @@ app.post('/registrar', {
 
 
 //ROTAR PARA FAZER LOGIN
-    app.post('/acessar', {
-    schema: {
-        description: 'Realizar login e criar sessão do usuário',
-        tags: ['Acesso a API'],
-        body: {
-            type: 'object',
-            required: ['name_user', 'email_user'],
-            properties: {
-                name_user: {
-                    type: 'string',
-                    minLength: 2,
-                    maxLength: 10,
-                    description: 'Nome do usuário',
-                    examples: ['Maicon']
-                },
-                email_user: {
-                    type: 'string',
-                    format: 'email',
-                    description: 'Email do usuário',
-                    examples: ['maicondouglas@gmail.com']
-                }
-            }
-        },
-        response: {
-            200: {
-                description: 'Login realizado com sucesso',
-                type: 'string'
-            },
-            400: {
-                description: 'Dados inválidos',
-                type: 'object',
-                properties: {
-                    error: {
-                        type: 'string'
-                    }
-                }
-            },
-            404: {
-                description: 'Usuário não encontrado',
-                type: 'object',
-                properties: {
-                    error: {
-                        type: 'string'
-                    }
-                }
-            }
-        },
-        security: []
-    }
-},async (req, reply) => {
+    app.post('/acessar',async (req, reply) => {
 
         const createUserBodySchema = z.object({
             name_user: z.string().min(2).max(10),
