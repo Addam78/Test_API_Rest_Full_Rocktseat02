@@ -38,10 +38,10 @@ app.post('/registrar',async (req,reply) =>{
         const verifica_email = await db('users').where({email}).first()
 
         if (existingUser ) {
-           return reply.code(400).send('Nome ja existente')
+           return reply.code(409).send('Nome ja existente')
         }
         if(verifica_email){
-          return reply.code(400).send('endereço de email ja existente')
+          return reply.code(409).send('endereço de email ja existente')
         }
        
         //PASSANDO OS ARQUIVOS PARA A VARIAVEL E HABILITANDO HASH
@@ -64,27 +64,23 @@ app.post('/registrar',async (req,reply) =>{
 })
 
 
-
 //ROTAR PARA FAZER LOGIN
     app.post('/acessar',async (req, reply) => {
-
         const createUserBodySchema = z.object({
             name_user: z.string().min(2).max(10),
             email_user: z.string()
         })
 
         const { name_user, email_user } = createUserBodySchema.parse(req.body)
-
-
         const existingUser = await db('users').select('name','email').where({ name: name_user, email:email_user}).first()
         
-        console.log(existingUser)
         
         if (!existingUser) {
-            return 'Usario não cadastrado'
+            return reply.code(409).send('Usario não cadastrado')
         }
 
         else {
+          //ADICIONA COOKIE ASSIM QUE USUARIO FIZER LOGIN
             let cookieSession = req.cookies.cookieSession
 
             if (!cookieSession) {
@@ -96,10 +92,8 @@ app.post('/registrar',async (req,reply) =>{
                 })
 
 
-                await db('users').where({ email: email_user, name: name_user }).update({
-                    'session_cookie': cookieSession
-                })
-
+                await db('users').where({ email: email_user, name: name_user })
+                .update({'session_cookie': cookieSession})
             }
 
            reply.code(200).send('Acesso autorizado')
@@ -107,24 +101,26 @@ app.post('/registrar',async (req,reply) =>{
         }
 
 })
+
 //VERIFICAÇÃO DE COOKIES
 app.get('/validar_cadastro',{preHandler : [cookie_authorization]
   } , async(req,reply)=>{
         //BUSCA DE SESSION COOKIE
         const cookie_session = req.cookies.cookieSession
-        const user = await db('users').where('session_cookie',cookie_session).first().select('id', 'name','session_cookie')
         
+        const user = await db('users').where('session_cookie',cookie_session).first().select('id', 'name','session_cookie')
         if(!user){
-            return 'Sessão expirada'
+            return reply.code(401).send('Sessão expirada') 
         }
+
         reply.code(200).send('Cadastrado validado com sucesso')
-        console.log(user)
 })
 
 
 //INSERIR LANCHE
 app.post('/inserir_lanche',{preHandler : [cookie_authorization]},
  async (req,reply)=>{
+  
     //ADIICONAR VERIFICAÇÃO DE COOKIE
     const cookie_session = req.cookies.cookieSession
     //TRATIVA DOS DADOS  TABELA MEAL
@@ -136,7 +132,6 @@ app.post('/inserir_lanche',{preHandler : [cookie_authorization]},
             return date
         }),  
         diet:z.enum(['s','n'])
-       
      })
 
      //PEGAR O ID DO USUARIO DE ACORDO COM O COOKIE DA SESSÃO
@@ -173,7 +168,7 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
     
 
   if (!user) {
-    return reply.status(401).send({ error: 'Usuário inválido ou sessão expirada' });
+    return reply.code(401).send({ error: 'Usuário inválido ou sessão expirada' });
   }
  
   const view = await db('meal')
@@ -227,7 +222,7 @@ app.post('/alterar_lanche',{preHandler: [cookie_authorization]},async (req,reply
 
   
   if(!user){
-    return reply.status(401).send({ error: 'Sessão inválida ou expirada' });
+    return reply.code(401).send({ error: 'Sessão inválida ou expirada' });
   }
 
   // PASSAR OS REQ.BODY DO USUARIOS
@@ -244,10 +239,10 @@ app.post('/alterar_lanche',{preHandler: [cookie_authorization]},async (req,reply
       'id': id_meal_update,
       'user_id': user.id
     })
-    .first();  // ← IMPORTANTE!
+    .first()
 
   if(!meal){
-    return reply.status(404).send({ error: 'Lanche não encontrado ou você não tem permissão' });
+    return reply.code(404).send({ error: 'Lanche não encontrado ou você não tem permissão' });
   }
 
   // Atualiza o lanche
@@ -259,22 +254,18 @@ app.post('/alterar_lanche',{preHandler: [cookie_authorization]},async (req,reply
     })
     .where({ 'id': id_meal_update });
 
-  // ✅ CORREÇÃO 3 e 4: Verifica corretamente e usa status 200
-  if(alterar === 0){
-    return reply.status(404).send({ error: 'ID do lanche inválido' });
-  }
-
-  return reply.status(200).send({ message: 'Lanche alterado com sucesso' });
+    return reply.code(200).send('Lanche atualizado com sucesso')
   
 } catch (error) {
-  console.error(error);
-  return reply.status(500).send({ error: 'Erro ao alterar lanche' });
+  return reply.code(500).send({ error: 'Erro ao alterar lanche' });
 }
+
 })
 
 app.post('/visualizacao_unica_lanche',{preHandler : [cookie_authorization]},async(req,reply) =>{
     
   const cookie_session = req.cookies.cookieSession;
+  //VALIDAÇÃO DO LANCHE
   const { name_search } = req.body as {
     name_search: string
   }
@@ -289,17 +280,15 @@ app.post('/visualizacao_unica_lanche',{preHandler : [cookie_authorization]},asyn
       .first()
 
     if(!viewunica){
-      return 'Lanche não existe'
+      return reply.code(404).send('Lanche não existe')
     }
     else{
-       return viewunica
+       return reply.code(200).send(viewunica)
     } 
-   
-
   }
 
   catch (error) {
-    console.error
+    return reply.code(404).send({error: 'Lanche não existe ou foi digitado de forma incorreta'})
   }
 }) 
 
@@ -319,20 +308,20 @@ app.delete('/deletar/:id',{preHandler : [cookie_authorization]},async(req,reply)
         .first();
 
     if (!user) {
-        return reply.status(401).send({ error: 'Sessão inválida ou expirada.' });
+        return reply.code(401).send({ error: 'Sessão inválida ou expirada.' });
     }
 
-        const meal = await db('meal')
+      const meal = await db('meal')
       .where('id', id)
       .first();
 
     if (!meal) {
-      return reply.status(404).send({ error: 'Lanche não encontrado.' });
+      return reply.code(404).send({ error: 'Lanche não encontrado.' });
     }
 
     // 3. Verifica se o lanche pertence ao usuário logado
     if (meal.user_id !== user.id) {
-      return reply.status(403).send({ error: 'Você não tem permissão para deletar este lanche.' });
+      return reply.code(403).send({ error: 'Você não tem permissão para deletar este lanche.' });
     }
 
     // 4. Deleta o lanche
@@ -344,11 +333,11 @@ app.delete('/deletar/:id',{preHandler : [cookie_authorization]},async(req,reply)
       .delete();
   
 
-       return reply.status(200).send(`Lanche deletado com sucesso`) 
+       return reply.code(200).send(`Lanche deletado com sucesso`) 
     }
     
   catch(error){
-    return error
+    return reply.code(404).send('lanche não encontrado')
   }
       
 })
