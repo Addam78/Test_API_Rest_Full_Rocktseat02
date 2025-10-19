@@ -67,7 +67,7 @@ app.post('/registrar',async (req,reply) =>{
 //ROTAR PARA FAZER LOGIN
     app.post('/acessar',async (req, reply) => {
         const createUserBodySchema = z.object({
-            name_user: z.string().min(2).max(10),
+            name_user: z.string().min(2).max(20),
             email_user: z.string()
         })
 
@@ -113,7 +113,7 @@ app.get('/validar_cadastro',{preHandler : [cookie_authorization]
             return reply.code(401).send('Sessão expirada') 
         }
 
-        reply.code(200).send('Cadastrado validado com sucesso')
+        reply.code(200).send(`Cadastrado validado com sucesso ${user.name}, seja bem vindo`)
 })
 
 
@@ -217,7 +217,7 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
 
 
 
-app.post('/alterar_lanche',{preHandler: [cookie_authorization]},async (req,reply) =>{
+app.patch('/alterar_lanche',{preHandler: [cookie_authorization]},async (req,reply) =>{
   try {
   const verifica_cookie = req.cookies.cookieSession;
 
