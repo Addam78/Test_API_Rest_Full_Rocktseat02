@@ -10,24 +10,26 @@ import z, { email } from 'zod'
 import 'dotenv/config'
 import { _email } from "zod/v4/core"
 import cookie from '@fastify/cookie'
-import {fastifySwagger} from '@fastify/swagger'
-import {fastifySwaggerUi} from '@fastify/swagger-ui'
+
 import {routes} from './routes/routes.js'
 
+import {fastifySwagger} from '@fastify/swagger'
+import {fastifySwaggerUi} from '@fastify/swagger-ui'
 export const app = fastify()
 
 //IMPORT DE COOKIES
 app.register (cookie)
-
 await app.register(fastifySwagger, {
-  openapi: {
-    openapi: '3.0.0',  // ⬅️⬅️⬅️ ESTE CAMPO ESTÁ FALTANDO!
-    info: {
-      title: 'Desafio Rockteseat',
-      version: '1.0.0'
-    }
-  }
-})
+    openapi: {
+      openapi: '3.0.0',
+      info: {
+        title: 'Desafio Rocketseat',
+        version: '1.0.0',
+        description: 'Documentação da API separada por módulos',
+      },
+      },
+    },
+  )
 
 await app.register(fastifySwaggerUi, {
     routePrefix :'/docs',

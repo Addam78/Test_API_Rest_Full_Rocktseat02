@@ -21,7 +21,62 @@ export  async function routes(app:FastifyInstance) {
   })
 
 //ROTA DE CADASTRO USUARIO
-app.post('/registrar',async (req,reply) =>{
+app.post('/registrar' , {
+  
+  schema: {
+    description: 'Registrar um novo usuário no sistema',
+   
+    body: {
+      type: 'object',
+      required: ['name', 'email', 'password'],
+      properties: {
+        name: {
+          type: 'string',
+          minLength: 2,
+          description: 'Nome do usuário'
+        },
+        email: {
+          type: 'string',
+          format: 'email',
+          description: 'Email do usuário'
+        },
+        password: {
+          type: 'string',
+          minLength: 4,
+          maxLength: 20,
+          description: 'Senha do usuário'
+        }
+      }
+    },
+    response: {
+      201: {
+        type: 'object',
+        description: 'Usuário cadastrado com sucesso',
+        properties: {
+          message: { type: 'string' }
+        }
+      },
+      409: {
+        type: 'object',
+        description: 'Nome ou email já existente',
+        properties: {
+          message: { type: 'string' }
+        }
+      },
+      400: {
+        type: 'object',
+        description: 'Erro de validação dos dados',
+        properties: {
+          statusCode: { type: 'number' },
+          error: { type: 'string' },
+          message: { type: 'string' }
+        }
+      }
+    }
+  }
+},
+
+async (req,reply) =>{
     
   try {
         //TRATIVA TIPAGEM DOS DADOS COM ZOD
@@ -65,7 +120,56 @@ app.post('/registrar',async (req,reply) =>{
 
 
 //ROTAR PARA FAZER LOGIN
-    app.post('/acessar',async (req, reply) => {
+    app.post('/acessar', {
+  schema: {
+    description: 'Fazer login no sistema',
+    
+    body: {
+      type: 'object',
+      required: ['name_user', 'email_user'],
+      properties: {
+        name_user: {
+          type: 'string',
+          minLength: 2,
+          maxLength: 20,
+          description: 'Nome do usuário'
+        },
+        email_user: {
+          type: 'string',
+          format: 'email',
+          description: 'Email do usuário'
+        }
+      }
+    },
+    response: {
+      200: {
+        type: 'object',
+        description: 'Acesso autorizado com sucesso',
+        properties: {
+          message: { type: 'string' }
+        }
+      },
+      409: {
+        type: 'object',
+        description: 'Usuário não cadastrado',
+        properties: {
+          message: { type: 'string' }
+        }
+      },
+      400: {
+        type: 'object',
+        description: 'Erro de validação dos dados',
+        properties: {
+          statusCode: { type: 'number' },
+          error: { type: 'string' },
+          message: { type: 'string' }
+        }
+      }
+    }
+  }
+},
+      
+      async (req, reply) => {
         const createUserBodySchema = z.object({
             name_user: z.string().min(2).max(20),
             email_user: z.string()
