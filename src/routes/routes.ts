@@ -207,8 +207,28 @@ async (req,reply) =>{
 })
 
 //VERIFICAÇÃO DE COOKIES
-app.get('/validar_cadastro',{preHandler : [cookie_authorization]
-  } , async(req,reply)=>{
+app.get('/validar_cadastro',{preHandler : [cookie_authorization],schema: {
+    description: 'Validar sessão do usuário logado',
+    // tags: ['auth'],
+    response: {
+      200: {
+        type: 'object',
+        description: 'Sessão válida',
+        properties: {
+          message: { type: 'string' }
+        }
+      },
+      401: {
+        type: 'object',
+        description: 'Sessão expirada ou inválida',
+        properties: {
+          message: { type: 'string' }
+        }
+      }
+    }
+  }
+},
+ async(req,reply)=>{
         //BUSCA DE SESSION COOKIE
         const cookie_session = req.cookies.cookieSession
         
@@ -222,7 +242,63 @@ app.get('/validar_cadastro',{preHandler : [cookie_authorization]
 
 
 //INSERIR LANCHE
-app.post('/inserir_lanche',{preHandler : [cookie_authorization]},
+app.post('/inserir_lanche',{preHandler : [cookie_authorization],
+  schema: {
+    description: 'Registrar uma nova refeição/lanche',
+    // tags: ['meals'],
+    body: {
+      type: 'object',
+      required: ['name_meal', 'description_meal', 'time_meal', 'diet'],
+      properties: {
+        name_meal: {
+          type: 'string',
+          minLength: 2,
+          description: 'Nome da refeição'
+        },
+        description_meal: {
+          type: 'string',
+          minLength: 2,
+          description: 'Descrição da refeição'
+        },
+        time_meal: {
+          type: 'string',
+          format: 'date-time',
+          description: 'Data e hora da refeição (formato ISO 8601)'
+        },
+        diet: {
+          type: 'string',
+          enum: ['s', 'n'],
+          description: 'Está dentro da dieta? (s = sim, n = não)'
+        }
+      }
+    },
+    response: {
+      201: {
+        type: 'object',
+        description: 'Refeição cadastrada com sucesso',
+        properties: {
+          message: { type: 'string' }
+        }
+      },
+      401: {
+        type: 'object',
+        description: 'Não autorizado - sessão inválida',
+        properties: {
+          message: { type: 'string' }
+        }
+      },
+      400: {
+        type: 'object',
+        description: 'Erro de validação dos dados',
+        properties: {
+          statusCode: { type: 'number' },
+          error: { type: 'string' },
+          message: { type: 'string' }
+        }
+      }
+    }
+  }
+},
  async (req,reply)=>{
   
     //ADIICONAR VERIFICAÇÃO DE COOKIE
@@ -262,7 +338,67 @@ app.post('/inserir_lanche',{preHandler : [cookie_authorization]},
 
 
 //VERIFICAR_LANCHE
-app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, reply) => {
+app.get('/verifica_lanche', {preHandler : [cookie_authorization] ,
+  schema: {
+    description: 'Visualizar todas as refeições do usuário com estatísticas',
+    // tags: ['meals'],
+    response: {
+      200: {
+        type: 'object',
+        description: 'Lista de refeições e estatísticas',
+        properties: {
+          view: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+                name_meal: { type: 'string' },
+                diet: { type: 'string' },
+                time_meal_formatado: { type: 'string' }
+              }
+            }
+          },
+          count: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                total: { type: 'number' }
+              }
+            }
+          },
+          totalRefeicoesdentrodieta: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                Refeicoes_dentro_da_dieta: { type: 'number' }
+              }
+            }
+          },
+          totalRefeicoesforadieta: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                Refeicoes_fora_da_dieta: { type: 'number' }
+              }
+            }
+          }
+        }
+      },
+      401: {
+        type: 'object',
+        description: 'Não autorizado - sessão inválida',
+        properties: {
+          error: { type: 'string' }
+        }
+      }
+    }
+  }
+},async (req, reply) => {
 
   const cookie_session = req.cookies.cookieSession;
 
@@ -321,7 +457,70 @@ app.get('/verifica_lanche', {preHandler : [cookie_authorization]} ,async (req, r
 
 
 
-app.patch('/alterar_lanche',{preHandler: [cookie_authorization]},async (req,reply) =>{
+app.patch('/alterar_lanche',{preHandler: [cookie_authorization],
+  schema: {
+    description: 'Atualizar informações de uma refeição existente',
+    // tags: ['meals'],
+    body: {
+      type: 'object',
+      required: ['id_meal_update', 'name_meal_update', 'description_meal_update', 'diet_meal_update'],
+      properties: {
+        id_meal_update: {
+          type: 'string',
+          format: 'uuid',
+          description: 'ID da refeição a ser atualizada'
+        },
+        name_meal_update: {
+          type: 'string',
+          minLength: 2,
+          description: 'Novo nome da refeição'
+        },
+        description_meal_update: {
+          type: 'string',
+          minLength: 2,
+          description: 'Nova descrição da refeição'
+        },
+        diet_meal_update: {
+          type: 'string',
+          enum: ['s', 'n'],
+          description: 'Está dentro da dieta? (s = sim, n = não)'
+        }
+      }
+    },
+    response: {
+      200: {
+        type: 'object',
+        description: 'Refeição atualizada com sucesso',
+        properties: {
+          message: { type: 'string' }
+        }
+      },
+      401: {
+        type: 'object',
+        description: 'Não autorizado - sessão inválida',
+        properties: {
+          error: { type: 'string' }
+        }
+      },
+      404: {
+        type: 'object',
+        description: 'Refeição não encontrada ou sem permissão',
+        properties: {
+          error: { type: 'string' }
+        }
+      },
+      400: {
+        type: 'object',
+        description: 'Erro de validação dos dados',
+        properties: {
+          statusCode: { type: 'number' },
+          error: { type: 'string' },
+          message: { type: 'string' }
+        }
+      }
+    }
+  }
+},async (req,reply) =>{
   try {
   const verifica_cookie = req.cookies.cookieSession;
 
@@ -373,7 +572,57 @@ app.patch('/alterar_lanche',{preHandler: [cookie_authorization]},async (req,repl
 
 })
 
-app.post('/visualizacao_unica_lanche',{preHandler : [cookie_authorization]},async(req,reply) =>{
+app.post('/visualizacao_unica_lanche',{preHandler : [cookie_authorization],
+  schema: {
+    description: 'Buscar uma refeição específica pelo nome',
+    // tags: ['meals'],
+    body: {
+      type: 'object',
+      required: ['name_search'],
+      properties: {
+        name_search: {
+          type: 'string',
+          minLength: 2,
+          description: 'Nome da refeição a ser buscada'
+        }
+      }
+    },
+    response: {
+      200: {
+        type: 'object',
+        description: 'Refeição encontrada',
+        properties: {
+          name_meal: { type: 'string' },
+          description_meal: { type: 'string' },
+          diet: { type: 'string' }
+        }
+      },
+      401: {
+        type: 'object',
+        description: 'Não autorizado - sessão inválida',
+        properties: {
+          error: { type: 'string' }
+        }
+      },
+      404: {
+        type: 'object',
+        description: 'Refeição não encontrada',
+        properties: {
+          error: { type: 'string' }
+        }
+      },
+      400: {
+        type: 'object',
+        description: 'Erro de validação dos dados',
+        properties: {
+          statusCode: { type: 'number' },
+          error: { type: 'string' },
+          message: { type: 'string' }
+        }
+      }
+    }
+  }
+},async(req,reply) =>{
     
   const cookie_session = req.cookies.cookieSession;
   //VALIDAÇÃO DO LANCHE
@@ -404,7 +653,61 @@ app.post('/visualizacao_unica_lanche',{preHandler : [cookie_authorization]},asyn
 }) 
 
 //DELETAR LANCHE
-app.delete('/deletar/:id',{preHandler : [cookie_authorization]},async(req,reply) =>{
+app.delete('/deletar/:id',{preHandler : [cookie_authorization],  schema: {
+    description: 'Deletar uma refeição pelo ID',
+    // tags: ['meals'],
+    params: {
+      type: 'object',
+      required: ['id'],
+      properties: {
+        id: {
+          type: 'string',
+          format: 'uuid',
+          description: 'ID da refeição a ser deletada'
+        }
+      }
+    },
+    response: {
+      200: {
+        type: 'object',
+        description: 'Refeição deletada com sucesso',
+        properties: {
+          message: { type: 'string' }
+        }
+      },
+      401: {
+        type: 'object',
+        description: 'Não autorizado - sessão inválida',
+        properties: {
+          error: { type: 'string' }
+        }
+      },
+      403: {
+        type: 'object',
+        description: 'Sem permissão para deletar esta refeição',
+        properties: {
+          error: { type: 'string' }
+        }
+      },
+      404: {
+        type: 'object',
+        description: 'Refeição não encontrada',
+        properties: {
+          error: { type: 'string' }
+        }
+      },
+      400: {
+        type: 'object',
+        description: 'Erro de validação - ID inválido',
+        properties: {
+          statusCode: { type: 'number' },
+          error: { type: 'string' },
+          message: { type: 'string' }
+        }
+      }
+    }
+  }
+},async(req,reply) =>{
   
   const cookie_session = req.cookies.cookieSession;
   
